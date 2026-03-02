@@ -1,5 +1,3 @@
-# Scientific Literature Discussion Platform
-
 ## What It Is
 
 A web app that lets researchers search for academic papers, save key extracts, and discuss them over live video/audio streams. It combines paper discovery (via Google Scholar), a personal extract library, and real-time discussion rooms into one place. Built for academics and research students who want to collaboratively review literature without switching between tools.
