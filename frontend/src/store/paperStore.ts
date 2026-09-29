@@ -148,7 +148,7 @@ export const usePaperStore = create<PaperState>()((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const response = await fetch(`/api/papers/search?query=${encodeURIComponent(query)}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/papers/search?query=${encodeURIComponent(query)}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -177,7 +177,7 @@ export const usePaperStore = create<PaperState>()((set, get) => ({
           
           if (newToken) {
             // retry with the new token
-            const retryResponse = await fetch(`/api/papers/search?query=${encodeURIComponent(query)}`, {
+            const retryResponse = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/papers/search?query=${encodeURIComponent(query)}`, {
               headers: {
                 'Authorization': `Bearer ${newToken}`
               }

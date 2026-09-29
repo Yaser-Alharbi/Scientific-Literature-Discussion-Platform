@@ -77,7 +77,6 @@ CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://localhost:4000',
-    'https://django-psql-persistent-web-apps-ec22413.apps.a.comp-teach.qmul.ac.uk',
     'https://discussion-platform-frontend-web-apps-ec22413.apps.a.comp-teach.qmul.ac.uk',
 ]
 
@@ -234,6 +233,9 @@ SERPAPI_KEY = os.getenv('SERPAPI_KEY')
 
 # Email required for Unpaywall API access
 UNPAYWALL_EMAIL = os.getenv('UNPAYWALL_EMAIL')
+
+# Contact email for CrossRef's polite pool, which is less contended than the public pool
+CROSSREF_EMAIL = os.getenv('CROSSREF_EMAIL', UNPAYWALL_EMAIL)
 
 
 # Add REST Framework settings

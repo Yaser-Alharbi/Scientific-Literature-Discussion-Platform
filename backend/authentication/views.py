@@ -45,50 +45,6 @@ def verify_token(request):
         print("Token verification error:", str(e))  # Debug print
         return Response({"error": str(e)}, status=401)
 
-
-# @api_view(['POST'])
-# @permission_classes([AllowAny]) # allow any user to register, if I dont put this here there would be a chicken and egg problem. User needs to register before they can login.
-# def register(request):
-#     try:
-#         # print("Register endpoint hit")  # Debug print
-#         # print(f"Request data: {request.data}")  # Debug print
-#         token = request.headers['Authorization'].split('Bearer ')[1]
-#         decoded_token = auth.verify_id_token(token)
-        
-#         data = request.data
-        
-#         # Check if user already exists
-#         try:
-#             user = User.objects.get(firebase_uid=decoded_token['uid'])
-#             # If user exists and they're setting a password
-#             if data.get('password'):
-#                 user.set_password(data['password'])
-#                 user.save()
-#                 return Response({"message": "Password updated"})
-#         except User.DoesNotExist:
-#             # Create new user
-#             user = User.objects.create(
-#                 firebase_uid=decoded_token['uid'],
-#                 email=decoded_token['email'],
-#                 username=decoded_token['email'],
-#                 first_name=decoded_token['first_name'],
-#                 last_name=decoded_token['last_name'],
-#                 institution=data.get('institution', ''),
-#                 bio=data.get('bio', ''),
-#                 research_interests=data.get('research_interests', []),
-                
-#             )
-
-#             if data.get('password'):
-#                 user.set_password(data['password'])
-#                 user.save()
-
-#         return Response({"message": "User created/updated successfully"})
-#     except Exception as e:
-#         print(f"Registration error: {str(e)}")
-#         return Response({"error": str(e)}, status=500)
-
-
 # first name and last name
 
 @api_view(['POST'])

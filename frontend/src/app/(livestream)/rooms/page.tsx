@@ -5,6 +5,10 @@ import { useLivestreamStore } from '@/store/livestreamStore';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 
+
+
+
+
 export default function RoomsPage() {
   const [roomTitle, setRoomTitle] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -423,7 +427,7 @@ export default function RoomsPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
                 </svg>
               </button>
-              
+        
               {/* Filter panel */}
               {showFilterPanel && (
                 <div className="absolute right-0 z-50 mt-2 w-64 bg-gray-800 border border-gray-700 rounded-lg shadow-xl">
@@ -495,6 +499,7 @@ export default function RoomsPage() {
                     className="ml-1 text-xs hover:text-red-300"
                   >
                     ×
+
                   </button>
                 </div>
               )).slice(0, 6)}

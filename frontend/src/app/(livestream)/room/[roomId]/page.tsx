@@ -85,7 +85,7 @@ function MyVideoConference() {
     [
       { source: Track.Source.Camera, withPlaceholder: true },
       { source: Track.Source.ScreenShare, withPlaceholder: false },
-      { source: Track.Source.Microphone, withPlaceholder: false },
+      { source: Track.Source.Microphone, withPlaceholder: true },
     ],
     { 
       onlySubscribed: true
