@@ -4,7 +4,7 @@ Status: `[ ]` todo · `[~]` in progress · `[x]` done. Update on completion.
 
 | # | Phase | Agent | Status |
 |---|-------|-------|--------|
-| 1 | Repo hygiene | `hygiene` | [~] code cleanup done; credential tests + click-through pending (see `docs/audit.md`) |
+| 1 | Repo hygiene | `hygiene` | [x] done, credentials verified by user (see `docs/audit.md`) |
 | 2 | Refactor stage 1: move/organize only | `organizer` | [ ] |
 | 3 | Deploy working demo | `deployer` | [ ] |
 | 4 | Demo user | `demo-user` | [ ] |

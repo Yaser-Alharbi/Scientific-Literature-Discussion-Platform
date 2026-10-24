@@ -5,14 +5,14 @@ No real secrets in tracked files or git history (only placeholders in `.env.exam
 
 Log-hygiene fix: removed prints that logged all webhook request headers (including `Authorization`), part of the webhook token, and a decoded Firebase token (`authentication/views.py`). These were JWTs (Firebase ID tokens expire within an hour; LiveKit webhook tokens are signed but don't contain the secret), so no key rotation is required.
 
-## Credential tests: NOT YET RUN
-Needs real keys in `backend/.env` and `frontend/.env.local` (the sandbox used placeholders only).
-
+## Credential tests (run locally by the user, results as reported)
 | Service | Status | Notes |
 |---|---|---|
-| Firebase (client + Admin SDK) | untested | Email/password + Google login; Django accepts token. `localhost` must be in Firebase authorized domains. Rule out `FIREBASE_SERVICE_ACCOUNT` formatting (`\n` in `private_key`) before calling a key dead. |
-| LiveKit | untested | Tests `backend/.env` key/secret/URL + `NEXT_PUBLIC_LIVEKIT_URL`. Webhook cannot reach localhost: stays untested. |
-| SerpAPI + Unpaywall | untested | One search; check DOI/PDF enrichment. |
+| Firebase (client + Admin SDK) | pass | Keys work on the user's machine. |
+| LiveKit | pass | Keys work. Webhook not testable on localhost: untested. |
+| SerpAPI + Unpaywall | pass | Keys work. |
+
+Backend checked locally: `/health/`, room list and admin login all work. The frontend loading hang was fixed on the user's side. Most features were click-tested and work.
 
 ## Baseline (before changes, placeholder env)
 - `npm run build`: failed (`/profile` route conflict with the empty `app/profile/page.tsx`).
@@ -21,7 +21,7 @@ Needs real keys in `backend/.env` and `frontend/.env.local` (the sandbox used pl
 ## After changes
 - `rm -rf .next && npm run build && npx tsc --noEmit`: pass; `/auth-test` and `/api/papers/search` no longer routed.
 - `manage.py check`, `makemigrations --check`: OK. `pyflakes` and `eslint` unused-var findings: no new ones vs. baseline (livestream/views.py has fewer).
-- Manual click-through and room screenshot comparison: NOT DONE (needs real credentials and a browser session).
+- Manual click-through: done by the user on `cleanup`; most features work. No before/after screenshot comparison was taken.
 
 ## Removed
 Dead files: `frontend/fiies.txt`, empty `app/profile/page.tsx`, both `livekit-overrides.css`, `auth-test/page.tsx`, `authdebugger.tsx` (+ import), `authGuard.tsx`, `lib/UrlConfig.ts`, `app/api/papers/search/route.ts`, `backend/authentication/firebase.py`, `livestream` `test_endpoint` (+ 2 routes), root `package.json`/`package-lock.json`, `backend/package-lock.json`, `environment.yml`.
