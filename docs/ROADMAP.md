@@ -5,7 +5,7 @@ Status: `[ ]` todo · `[~]` in progress · `[x]` done. Update on completion.
 | # | Phase | Agent | Status |
 |---|-------|-------|--------|
 | 1 | Repo hygiene | `hygiene` | [x] done, credentials verified by user (see `docs/audit.md`) |
-| 2 | Refactor stage 1: move/organize only | `organizer` | [ ] |
+| 2 | Refactor stage 1: move/organize only | `organizer` | [x] done; user click-through pending |
 | 3 | Deploy working demo | `deployer` | [ ] |
 | 4 | Demo user | `demo-user` | [ ] |
 | 5 | Refactor stage 2: real code changes | `refactorer` | [ ] |
@@ -49,3 +49,11 @@ Out-of-scope findings go here with the phase they belong to.
 - Phase 3: remaining prints in `papers/views.py` (4), `authentication/authentication.py` (1), `settings.py` (1) -> `logger`; `DEBUG=True`, `ALLOWED_HOSTS=*`, hardcoded QMUL CORS/CSRF origins, insecure cookie flags, disabled password validators, `DATABASE_PASSWORD` default; `next.config.js` wildcard CORS with credentials, `eslint.ignoreDuringBuilds`, `localhost:8000` rewrite and its redundant second rewrite; `.env.example` missing `CROSSREF_EMAIL` and `DATABASE_*`; `requirements.txt` is UTF-16 and pins `psycopg2-binary` that fails to build on Python 3.13; includes selenium and debug-toolbar; `backend/.s2i/` decision.
 - Phase 5: duplicate `authentication` `0007/0008_alter_user_id` migrations; missing `livestream` `0004`; `paperStore.ts` repeats the same fetch for its retry; many `no-explicit-any` lint errors; `Q` import unused in `livestream/views.py`.
 - Phase 7: README port mismatch (Selenium tests use 4000).
+
+### From phase 2
+- Phase 3 (security): the LiveKit webhook accepts any `Bearer <anything>` header, so anyone can post fake `room_finished`/`participant_left` events and deactivate or delete rooms. Fix with LiveKit's `WebhookReceiver` signature check.
+- Phase 5: central API client and one `NEXT_PUBLIC_API_BASE_URL` module; serializers; de-duplicate the Firebase blocks in `authentication/views.py`; de-duplicate `participant_left` in `livestream/webhook_events.py` (three nested `delete_room` blocks, two near-identical host-left branches).
+- Phase 5, real bug: `paperStore.ts:392` calls `/api/papers/extracts/${id}/share/`, which has no backend route.
+- Phase 5: research interests are served by two views (`authentication.get_research_interests`, `livestream.research_interests`).
+- Phase 5: pre-existing unused imports (`Q` in `livestream/views.py`, `json` in `papers/views.py`).
+- Room page split (1,415 lines) skipped on purpose: that page is being rebuilt.

@@ -1,4 +1,4 @@
-// frontend/src/components/ui/pageLoadDelay.tsx
+// frontend/src/components/ui/PageLoadDelay.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
