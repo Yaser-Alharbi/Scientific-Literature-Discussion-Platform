@@ -46,7 +46,6 @@ export default function RoomsPage() {
   
   // Initial load of rooms and research interests
   useEffect(() => {
-    console.log('Fetching available rooms');
     fetchRooms().then(() => {
       setInitialLoadComplete(true);
     });
@@ -56,7 +55,6 @@ export default function RoomsPage() {
   // auto-refresh for rooms
   useEffect(() => {
     const intervalId = setInterval(() => {
-      console.log('Auto-refreshing rooms');
       // prevent flash
       requestAnimationFrame(() => {
         fetchRooms();
@@ -193,12 +191,10 @@ export default function RoomsPage() {
     try {
       setIsCreating(true);
       setError(null);
-      console.log(`Creating room with title: ${roomTitle} and interests: ${selectedInterests.join(', ')}`);
       
       const room = await createRoom(roomTitle, selectedInterests);
       
       if (room) {
-        console.log(`Room created or found successfully:`, room);
         router.push(`/room/${room.room_id}`);
       } else {
         setError('Failed to create or find room');

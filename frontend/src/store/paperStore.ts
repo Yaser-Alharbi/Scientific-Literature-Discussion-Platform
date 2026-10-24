@@ -350,7 +350,6 @@ export const usePaperStore = create<PaperState>()((set, get) => ({
       
       const data = await response.json();
       
-      //console.log('Extract API response in store:', data);
       
       // api might return extracts directly as an array rather than inside an 'extracts' property
       let extractsData = [];
@@ -372,18 +371,7 @@ export const usePaperStore = create<PaperState>()((set, get) => ({
         extractsData = [];
       }
       
-      // debug
-      // extractsData.forEach((extract: Extract, index: number) => {
-      //   console.log(`Extract ${index} PDF link in store:`, {
-      //     pdf_link: extract.pdf_link,
-      //     type: typeof extract.pdf_link,
-      //     isEmpty: extract.pdf_link === '',
-      //     isNull: extract.pdf_link === null,
-      //     isUndefined: extract.pdf_link === undefined
-      //   });
-      // });
       
-      // console.log(`Found ${extractsData.length} extracts`);
       set({ userExtracts: extractsData, loadingExtracts: false });
       return extractsData;
     } catch (err) {

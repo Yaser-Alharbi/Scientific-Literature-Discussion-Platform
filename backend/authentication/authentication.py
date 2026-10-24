@@ -10,9 +10,6 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
     
     def authenticate(self, request):
         
-        # debugging
-        # print(f"Request path: {request.path}")
-        
         # Get the auth header
         auth_header = request.META.get('HTTP_AUTHORIZATION')
         if not auth_header:

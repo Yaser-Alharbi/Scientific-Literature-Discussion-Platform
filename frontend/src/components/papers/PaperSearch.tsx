@@ -40,22 +40,6 @@ export default function PaperSearch() {
     };
   }, [openDropdownIndex]);
   
-//   // Log metadata whenever results change
-//   useEffect(() => {
-//     if (results.length > 0) {
-//       console.log('Scholar Search Results Metadata:', 
-//         results.map(result => ({
-//           title: result.title,
-//           position: result.position,
-//           doi: result.doi || 'Not available',
-//           publication_info: result.publication_info || 'Not available',
-//           resources: result.resources || 'Not available',
-//           inline_links: result.inline_links || 'Not available',
-//           all_data: result // Include the complete result for debugging
-//         }))
-//       );
-//     }
-//   }, [results]);
   
   const [hasSearched, setHasSearched] = useState(false);
   

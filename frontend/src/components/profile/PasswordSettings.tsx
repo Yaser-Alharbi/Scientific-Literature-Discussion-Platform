@@ -24,13 +24,6 @@ export default function PasswordSettings() {
   const [formTouched, setFormTouched] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
-  // // consolelog user data
-  // useEffect(() => {
-  //   if (user) {
-  //     console.log('User data in PasswordSettings:', user);
-  //   }
-  // }, [user]);
-
   const hasPasswordSet = 
     user?.password_set || 
     (user?.auth_methods && user.auth_methods.includes('EMAIL'));
@@ -77,13 +70,11 @@ export default function PasswordSettings() {
     setSuccessMessage('');
     setFormTouched(true);
     
-    // console.log('Submitting password change form');
 
     try {
       // client-side validation
       if (passwords.new !== passwords.confirm) {
         const errorMsg = 'New passwords do not match';
-        // console.log('Validation error:', errorMsg);
         setLocalError(errorMsg);
         return;
       }
@@ -91,23 +82,19 @@ export default function PasswordSettings() {
       // validate current password if user has a password set
       if (hasPasswordSet && passwords.new === passwords.current) {
         const errorMsg = 'New password must be different from current password';
-        // console.log('Validation error:', errorMsg);
         setLocalError(errorMsg);
         return;
       }
 
       if (!isAuthenticated) {
         const errorMsg = 'You must be logged in';
-        // console.log('Validation error:', errorMsg);
         setLocalError(errorMsg);
         return;
       }
 
-      // console.log('Attempting to set password with authStore');
       //authStore's setPassword with the current password (only if password is set)
       await setPassword(passwords.new, hasPasswordSet ? passwords.current : undefined);
 
-      // console.log('Password updated successfully');
       setSuccessMessage(hasPasswordSet ? 'Password updated successfully' : 'Password created successfully');
       setPasswords({ current: '', new: '', confirm: '' });
       

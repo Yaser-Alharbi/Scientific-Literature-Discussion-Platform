@@ -94,11 +94,9 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     try {
-      // console.log('Updating profile with data:', editableUser);
       
       await updateProfile(editableUser);
       
-      // console.log('Profile updated, refreshing data');
       await fetchProfile();
       
       setNotification({ message: 'Profile updated successfully!', isError: false, show: true });

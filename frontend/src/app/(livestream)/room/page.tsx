@@ -13,11 +13,9 @@ export default function RedirectPage() {
     
     if (roomId) {
       // Redirect to new URL format
-      console.log(`Redirecting from old URL format to /room/${roomId}`);
       router.push(`/room/${roomId}`);
     } else {
       // If no room ID, redirect to rooms list
-      console.log('No room ID found, redirecting to rooms list');
       router.push('/rooms');
     }
   }, [router, searchParams]);

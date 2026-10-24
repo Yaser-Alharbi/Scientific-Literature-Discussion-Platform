@@ -47,7 +47,6 @@ export default function ExtractsPage() {
         }
         
         const data = await response.json();
-        // console.log('Extract API response:', data);
         
         let extractsData = [];
         if (Array.isArray(data)) {
@@ -63,18 +62,7 @@ export default function ExtractsPage() {
           extractsData = [];
         }
         
-        // debug for each extract's pdf_link
-        // extractsData.forEach((extract: Extract, index: number) => {
-        //   console.log(`Extract ${index} PDF link:`, {
-        //     pdf_link: extract.pdf_link,
-        //     type: typeof extract.pdf_link,
-        //     isEmpty: extract.pdf_link === '',
-        //     isNull: extract.pdf_link === null,
-        //     isUndefined: extract.pdf_link === undefined,
-        //     hasValue: Boolean(extract.pdf_link)
-        //   });
-        // });
-        
+
         setExtracts(extractsData);
         setIsLoading(false);
       } catch (err: any) {

@@ -31,15 +31,11 @@ export default function PageLoadDelay({ children }: { children: React.ReactNode 
           //redirect if component is still mounted
           if (!isMounted) return;
           
-          // redirect if the page exists but requires authentication
+          // redirect if the page exists but requires authentication, otherwise Next.js shows the not-found page
           if (response.ok) {
-            console.log('Valid route, redirecting for authentication');
             setTimeout(() => {
               router.push('/');
             }, 0);
-          } else {
-            console.log('404 route, letting Next.js handle it');
-            // next.js will handle the 404 page by displaying the not-found page automatically
           }
         })
         .catch(() => {

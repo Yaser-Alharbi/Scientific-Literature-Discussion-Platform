@@ -584,7 +584,6 @@ function ReferencesTab() {
     
     try {
 
-      //console.log("Selected extract:", selectedExtract);
       
       // Format for extract data for sharing
       const extractToShare = {
@@ -599,7 +598,6 @@ function ReferencesTab() {
         page_number: selectedExtract.page_number || null,
       };
       
-      //console.log("Sending extract data:", extractToShare);
       
       // Share the extract through the backend API
       const success = await shareExtractInRoom(roomId, extractToShare);
@@ -649,14 +647,6 @@ function ReferencesTab() {
   };
   
   const canShareExtracts = currentUserRole === 'host' || currentUserRole === 'guest';
-  
-  useEffect(() => {
-    if (sharedExtracts.length > 0) {
-      //console.log("Shared extracts:", sharedExtracts);
-      //console.log("Sample extract data:", sharedExtracts[0]);
-      //console.log("PDF link available:", Boolean(sharedExtracts[0].pdf_link));
-    }
-  }, [sharedExtracts]);
   
   return (
     <div className="h-full flex flex-col">

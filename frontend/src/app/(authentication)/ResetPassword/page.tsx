@@ -26,7 +26,6 @@ export default function ResetPassword() {
       const mode = searchParams?.get('mode');
       const code = searchParams?.get('oobCode');
       
-      console.log('URL Parameters:', { mode, code });
       
       if (mode === 'resetPassword' && code) {
         setOobCode(code);
@@ -34,10 +33,8 @@ export default function ResetPassword() {
         try {
           // get email from Firebase using the reset code
           setVerifying(true);
-          console.log('Verifying reset code with Firebase');
           const emailFromCode = await verifyPasswordResetCode(auth, code);
           setEmail(emailFromCode);
-          console.log('Email retrieved from reset code:', emailFromCode);
           setVerifying(false);
         } catch (err: any) {
           console.error('Error verifying reset code:', err);
@@ -65,21 +62,16 @@ export default function ResetPassword() {
       console.error('Password validation failed: password too short');
       return false;
     }
-    console.log('Password validation passed');
     return true;
   };
   
   const syncPasswordWithBackend = async (newPassword: string, userEmail: string) => {
-    console.log('Attempting to sync password with backend for email:', userEmail);
     try {
       // log in to get a fresh token
-      console.log('signing in with new password to get token');
       const userCredential = await signInWithEmailAndPassword(auth, userEmail, newPassword);
       const token = await userCredential.user.getIdToken();
-      console.log('got token successfully');
       
       // call backend to sync the password
-      console.log('calling backend API to sync password');
       const response = await fetch(`${API_URL}/api/sync-reset-password`, {
         method: 'POST',
         headers: {
@@ -93,14 +85,12 @@ export default function ResetPassword() {
       });
       
       const responseData = await response.json();
-      console.log('Backend response:', responseData);
       
       if (!response.ok) {
         console.error('Backend sync failed:', responseData);
         throw new Error('Failed to sync password with server');
       }
       
-      console.log('Password synced successfully with backend');
       return true;
     } catch (error: any) {
       console.error('Password sync error:', error);
@@ -124,20 +114,15 @@ export default function ResetPassword() {
     
     setIsLoading(true);
     setError(null);
-    console.log('Starting password reset process', { email, oobCode });
     
     try {
       // 1. update password in Firebase
-      console.log('confirming password reset with Firebase');
       await confirmPasswordReset(auth, oobCode, password);
-      console.log('Firebase password reset successful');
       
       // 2. sync with backend
-      console.log('syncing password with backend');
       const syncSuccess = await syncPasswordWithBackend(password, email);
       
       if (syncSuccess) {
-        console.log('Password reset complete and synced successfully');
         setSuccess(true);
         // redirect to login after 3 seconds
         setTimeout(() => {

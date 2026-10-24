@@ -33,7 +33,6 @@ export default function LoginForm() {
     // redirect if authenticated AND if there is a user object
     // redirect only happens if django auth was successful not only firebase auth
     if (isAuthenticated && token && user) {
-      // console.log("Login successful, redirecting to homepage");
       router.push('/');
     }
   }, [isAuthenticated, token, user, router]);

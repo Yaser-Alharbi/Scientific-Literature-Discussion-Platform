@@ -31,10 +31,6 @@ export default function Navbar() {
         };
     }, [dropdownRef]);
 
-    // useEffect(() => {
-    //     console.log('pathname:', pathname);
-    // }, [pathname]);
-
     const handleLogout = async () => {
         logout();
         router.push('/Login');

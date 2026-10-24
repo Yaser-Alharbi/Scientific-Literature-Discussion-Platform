@@ -11,11 +11,6 @@ import logging
 logger = logging.getLogger(__name__)
 # Create your views here.
 
-# @api_view(['GET'])
-# def test_connection(request):
-#     return Response({"message": "Connected!"})
-
-
 @api_view(['GET'])
 def verify_token(request):
     try:
@@ -34,7 +29,7 @@ def verify_token(request):
         CLOCK_SKEW_TOLERANCE = 300  # 5 minutes
         
         if iat > current_time + CLOCK_SKEW_TOLERANCE:
-            print(f"Clock skew detected: Token issued at {iat}, current time {current_time}")
+            logger.warning(f"Clock skew detected: Token issued at {iat}, current time {current_time}")
             return Response({
                 "uid": decoded_token["uid"],
                 "warning": "Clock skew detected"
@@ -42,7 +37,7 @@ def verify_token(request):
         
         return Response({"uid": decoded_token["uid"]})
     except Exception as e:
-        print("Token verification error:", str(e))  # Debug print
+        logger.exception("Token verification error")
         return Response({"error": str(e)}, status=401)
 
 # first name and last name
@@ -99,7 +94,7 @@ def register(request):
 
         return Response({"message": "User created/updated successfully"})
     except Exception as e:
-        print(f"Registration error: {str(e)}")
+        logger.exception("Registration error")
         return Response({"error": str(e)}, status=500)
 
 
@@ -151,7 +146,6 @@ def user_profile(request):
 
 @api_view(['GET'])
 def check_user(request):
-#    print("Check user endpoint hit")  # Debug print
    try:
        auth_header = request.headers.get('Authorization', '')
        if not auth_header:
@@ -163,18 +157,17 @@ def check_user(request):
            decoded_token = auth.verify_id_token(token)
            
            try:
-               print(f"Token: {decoded_token}")  # Debug print
                user = User.objects.get(firebase_uid=decoded_token['uid'])
                if user.is_active:  # Check profile completion
                    return Response(status=200)
                return Response({"message": "Profile incomplete"}, status=404)
            except User.DoesNotExist:
                return Response({"message": "User not found"}, status=404)
-       except Exception as e:
-           print(f"Token verification error: {str(e)}")
+       except Exception:
+           logger.exception("Token verification error")
            return Response({"error": "Invalid token"}, status=401)
-   except Exception as e:
-       print(f"Unexpected error in check_user: {str(e)}")
+   except Exception:
+       logger.exception("Unexpected error in check_user")
        return Response({"error": "Server error"}, status=500)
    
    
@@ -251,15 +244,11 @@ def update_profile(request):
         except User.DoesNotExist:
             return Response({"error": "User not found"}, status=404)
         except Exception as inner_error:
-            import traceback
-            print(f"Inner profile update error: {str(inner_error)}")
-            print(traceback.format_exc())
+            logger.exception("Inner profile update error")
             return Response({"error": str(inner_error)}, status=500)
             
     except Exception as e:
-        import traceback
-        print(f"Profile update error: {str(e)}")
-        print(traceback.format_exc())
+        logger.exception("Profile update error")
         return Response({"error": str(e)}, status=500)
     
 @api_view(['GET'])
@@ -279,7 +268,6 @@ def sync_reset_password(request):
         email = request.data.get('email')
         password = request.data.get('password')
 
-        print(f"Syncing password for email: {email}")
         user = User.objects.get(email=email)
         user.set_password(password)
         user.save()

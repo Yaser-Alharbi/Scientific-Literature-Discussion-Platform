@@ -254,7 +254,6 @@ export const useAuthStore = create<AuthStore>()(
             throw new Error(data.error || 'Failed to register Google user');
           }
           
-          // await new Promise(resolve => setTimeout(resolve, 500));   // wait for token to be refreshed based on current testing not needed but kept for future use
 
           const freshToken = await userCredential.user.getIdToken(true);
           set({ token: freshToken });
@@ -325,7 +324,6 @@ export const useAuthStore = create<AuthStore>()(
           
           set({ token, isLoading: false });
 
-          // await new Promise(resolve => setTimeout(resolve, 500));   // wait for token to be refreshed based on current testing not needed but kept for future use
 
           const freshToken = await userCredential.user.getIdToken(true);
           set({ token: freshToken });
@@ -491,7 +489,6 @@ export const useAuthStore = create<AuthStore>()(
         try {
           set({ isLoading: true, error: null });
           
-          // console.log('AuthStore: Sending profile update with data:', userData);  // for debugging
           
           
           const response = await fetch(AUTH_ENDPOINTS.UPDATE_PROFILE, {
@@ -709,7 +706,6 @@ if (typeof window !== 'undefined') {
   setInterval(() => {
     const { error, refreshToken } = useAuthStore.getState();
     if (error && error.includes('Token used too early')) {
-      console.log('[Auth] Detected timing error, refreshing token...');
       refreshToken();
     }
   }, 2000);

@@ -1,11 +1,9 @@
 # # backend/livestream/views.py
 
+import logging
 import uuid
 import asyncio
 import json
-# import hmac
-# import hashlib
-# import base64
 from functools import wraps
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -22,18 +20,7 @@ from django.utils import timezone
 from django.db.models import Q
 from papers.models import PaperExtract
 
-# Add simple test endpoint
-@api_view(['GET', 'POST'])
-@permission_classes([AllowAny])
-def test_endpoint(request):
-    """Simple test endpoint to verify API connectivity"""
-    print("Test endpoint called!")
-    return Response({
-        'status': 'success',
-        'message': 'API is working!',
-        'method': request.method,
-        'data': request.data if request.method == 'POST' else None
-    })
+logger = logging.getLogger(__name__)
 
 # Get LiveKit config from settings
 LIVEKIT_API_URL = getattr(settings, 'LIVEKIT_API_URL', None)
@@ -63,7 +50,6 @@ def get_livekit_client():
 @permission_classes([AllowAny])  # Temporarily allow any user for testing
 def room_list(request):
     """List all active rooms"""
-    print("Fetching room list")
     rooms = Room.objects.filter(is_active=True).order_by('-created_at')
     
     room_data = []
@@ -95,7 +81,6 @@ def room_list(request):
         }
         room_data.append(room_info)
     
-    print(f"Found {len(room_data)} active rooms")
     return Response(room_data)
 
 @api_view(['GET'])
@@ -133,17 +118,14 @@ def room_participants(request, room_id):
             # check if user is the host
             if room.host and room.host.id == user.id:
                 current_user_role = 'host'
-                print(f"User {user.id} ({user.username}) is the host of room {room_id}")
             else:
                 # check if user is a participant with another role
                 try:
                     participant = Participant.objects.get(room=room, user=user)
                     current_user_role = participant.role
-                    print(f"User {user.id} ({user.username}) is a {participant.role} in room {room_id}")
                 except Participant.DoesNotExist:
                     # default to viewer if no role found
                     current_user_role = 'viewer'
-                    print(f"User {user.id} ({user.username}) defaulting to viewer in room {room_id}")
         
         participants_data = []
         for participant in participants:
@@ -184,7 +166,6 @@ def room_participants(request, room_id):
                 'isTemporary': True
             })
         
-        print(f"Room {room_id} - Current user role: {current_user_role}")
         
         return Response({
             'roomId': room.room_id,
@@ -213,23 +194,9 @@ def delete_room(request, room_id):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        print(f"Deleting room {room_id} (ID: {room.id}, Name: {room.name})")
         
         #  disconnect all participants from LiveKit
         try:
-            # Get list of participants before deletion
-            @sync_livekit
-            async def get_room_participants():
-                async with get_livekit_client() as client:
-                    participants = await client.room.list_participants(
-                        ListParticipantsRequest(room=room_id)
-                    )
-                    return participants
-            
-            participant_response = get_room_participants()
-            participant_count = len(participant_response.participants)
-            print(f"Room has {participant_count} participants to disconnect")
-            
             # Delete from LiveKit
             @sync_livekit
             async def delete_livekit_room():
@@ -239,21 +206,17 @@ def delete_room(request, room_id):
                     )
             
             delete_livekit_room()
-            print(f"LiveKit room {room_id} deleted successfully")
-        except Exception as e:
-            print(f"Error with LiveKit room deletion: {str(e)}")
+        except Exception:
+            logger.exception("Error with LiveKit room deletion")
             # Continue with local deletion even if LiveKit deletion fails
         
         # Remove all participants from database
-        participant_count = Participant.objects.filter(room=room).count()
         Participant.objects.filter(room=room).delete()
-        print(f"Removed {participant_count} participants from database")
         
         # Mark as inactive and then delete from database
         room.is_active = False
         room.save()
         room.delete()
-        print(f"Room {room_id} deleted from database")
         
         return Response({'success': True})
         
@@ -263,7 +226,7 @@ def delete_room(request, room_id):
             status=status.HTTP_404_NOT_FOUND
         )
     except Exception as e:
-        print(f"Error deleting room: {str(e)}")
+        logger.exception("Error deleting room")
         return Response(
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -285,8 +248,6 @@ def create_room(request):
     user_id = str(request.user.id)
     room_id = user_id
     
-    print(f"Creating room '{name}' with ID: {room_id} (User: {request.user.username})")
-    print(f"Research interests: {research_interests}")
     
     # Create the LiveKit room via API
     try:
@@ -295,7 +256,6 @@ def create_room(request):
             existing_room = Room.objects.get(room_id=room_id)
             # if room exists but is not active, reactivate it
             if not existing_room.is_active:
-                print(f"Reactivating existing room {room_id}")
                 existing_room.is_active = True
                 existing_room.name = name
                 existing_room.save()
@@ -319,7 +279,6 @@ def create_room(request):
                     'research_interests': interests
                 }, status=status.HTTP_200_OK)
             else:
-                print(f"Room with ID {room_id} already exists and is active")
                 return Response({'error': 'You already have an active room'}, status=status.HTTP_400_BAD_REQUEST)
         except Room.DoesNotExist:
             # room doesn't exist, continue with creation
@@ -342,8 +301,7 @@ def create_room(request):
             async with get_livekit_client() as client:
                 return await client.room.create_room(room_request)
         
-        livekit_room = create_livekit_room()
-        print(f"LiveKit room created: {livekit_room}")
+        create_livekit_room()
         
         # create room in database
         room = Room.objects.create(
@@ -364,13 +322,12 @@ def create_room(request):
                 room.research_interests.add(interest)
         
         # create participant entry for the host
-        participant = Participant.objects.create(
+        Participant.objects.create(
             room=room,
             user=request.user,
             role='host'
         )
         
-        print(f"Room created in database: {room.room_id} (ID: {room.id})")
         
         # get research interests for response
         interests = [interest.name for interest in room.research_interests.all()]
@@ -385,7 +342,7 @@ def create_room(request):
         }, status=status.HTTP_201_CREATED)
         
     except Exception as e:
-        print(f"Error creating room: {str(e)}")
+        logger.exception("Error creating room")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
@@ -410,9 +367,6 @@ def get_room_token(request, room_id):
         if user.is_authenticated:
             if requested_role == 'host' and room.host != user:
                 requested_role = 'viewer'
-                print(f"User requested 'host' role but is not the host - downgraded to viewer")
-            else:
-                print(f"User requested role '{requested_role}' - verified")
                 
             participant, created = Participant.objects.get_or_create(
                 room=room,
@@ -465,7 +419,6 @@ def get_room_token(request, room_id):
         can_publish = True
         room_admin = requested_role == 'host'
         
-        print(f"DEBUG PERMISSIONS: role={requested_role}, can_publish={can_publish}, room_admin={room_admin}")
         
         grants = VideoGrants(
             room=room_id,
@@ -477,7 +430,6 @@ def get_room_token(request, room_id):
         )
         
         # Admin rights already set above
-        print(f"Final token permissions: can_publish={grants.can_publish}, room_admin={grants.room_admin}")
         
         token.with_grants(grants)
         
@@ -500,14 +452,9 @@ def get_room_token(request, room_id):
 @permission_classes([AllowAny])
 def webhook(request):
     """Handle LiveKit webhooks for participant and room events"""
-    print("\n===== WEBHOOK EVENT RECEIVED =====")
-    print(f"[WEBHOOK] Request Method: {request.method}")
-    print(f"[WEBHOOK] Headers: {dict(request.headers)}")
-    print(f"[WEBHOOK] Query Params: {dict(request.query_params)}")
     
     try:
         if request.method == 'GET':
-            print(f"[WEBHOOK] Received GET request - LiveKit testing or verification")
             
             
             return Response(
@@ -516,31 +463,23 @@ def webhook(request):
             )
         
         auth_header = request.headers.get('Authorization', '')
-        print(f"[WEBHOOK] Auth Header Present: {bool(auth_header)}")
         
         if not auth_header or not auth_header.startswith('Bearer '):
-            print("[ERROR] Webhook received with invalid authorization header")
+            logger.error("Webhook received with invalid authorization header")
             return Response(
                 {'error': 'Invalid authorization header'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
         
-        # Extract the token
-        token = auth_header.replace('Bearer ', '')
-        print(f"[WEBHOOK] Token extracted (partial): {token[:10]}...")
-        
         # Parse the request body
         body_data = request.body
-        print(f"[WEBHOOK] Body data length: {len(body_data)} bytes")
         
         
         # Parse JSON data
         try:
             event_data = json.loads(body_data.decode('utf-8'))
-            print(f"[WEBHOOK] Successfully parsed JSON data")
         except json.JSONDecodeError as e:
-            print(f"[WEBHOOK] Error parsing JSON data: {str(e)}")
-            print(f"[WEBHOOK] Raw body data: {body_data.decode('utf-8', 'ignore')}")
+            logger.exception("[WEBHOOK] Error parsing JSON data")
             return Response(
                 {'error': f'Invalid JSON data: {str(e)}'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -548,21 +487,15 @@ def webhook(request):
         
         # Get the event type
         event_type = event_data.get('event')
-        print(f"[WEBHOOK] Event Type: {event_type}")
-        print(f"[WEBHOOK] Data: {json.dumps(event_data, indent=2)}")
         
         # Log events differently based on type
         if event_type == 'room_started':
             room_info = event_data.get('room', {})
             room_name = room_info.get('name')
-            print(f"\n[ROOM STARTED] Room: {room_name}")
-            print(f"[ROOM STARTED] Details: {json.dumps(room_info, indent=2)}")
             
         elif event_type == 'room_finished':
             room_info = event_data.get('room', {})
             room_name = room_info.get('name')
-            print(f"\n[ROOM FINISHED] Room: {room_name}")
-            print(f"[ROOM FINISHED] Details: {json.dumps(room_info, indent=2)}")
             
             # Mark room as inactive in database
             try:
@@ -572,11 +505,9 @@ def webhook(request):
                 
                 # Clear all participants for this room
                 Participant.objects.filter(room=room).delete()
-                print(f"[ROOM FINISHED] Removed all participants for room {room_name}")
                 
-                print(f"[ROOM FINISHED] Marked room {room_name} as inactive in database")
             except Room.DoesNotExist:
-                print(f"[ROOM FINISHED] Room {room_name} not found in database")
+                logger.warning(f"[ROOM FINISHED] Room {room_name} not found in database")
             
         elif event_type == 'participant_joined':
             room_info = event_data.get('room', {})
@@ -585,18 +516,6 @@ def webhook(request):
             room_name = room_info.get('name')
             participant_identity = participant_info.get('identity')
             participant_name = participant_info.get('name')
-            participant_state = participant_info.get('state')
-            participant_permission = participant_info.get('permission', {})
-            participant_metadata = participant_info.get('metadata')
-            
-            print(f"\n[PARTICIPANT JOINED] Event Details:")
-            print(f"  Room: {room_name}")
-            print(f"  Participant Identity: {participant_identity}")
-            print(f"  Participant Name: {participant_name}")
-            print(f"  State: {participant_state}")
-            print(f"  Metadata: {participant_metadata}")
-            print(f"  Permissions: {json.dumps(participant_permission, indent=2)}")
-            print(f"  Full Participant Info: {json.dumps(participant_info, indent=2)}")
             
             # Make sure participant is in database
             if room_name and participant_identity:
@@ -611,22 +530,17 @@ def webhook(request):
                         user = User.objects.get(id=participant_identity)
                         
                         # Create participant if doesn't exist
-                        participant, created = Participant.objects.get_or_create(
+                        Participant.objects.get_or_create(
                             room=room,
                             user=user,
                             defaults={'role': 'viewer'}  # Default role
                         )
-                        
-                        if created:
-                            print(f"[PARTICIPANT JOINED] Added participant {participant_identity} to database")
-                        else:
-                            print(f"[PARTICIPANT JOINED] Participant {participant_identity} already in database")
-                            
+
                     except User.DoesNotExist:
-                        print(f"[PARTICIPANT JOINED] User with ID {participant_identity} not found")
+                        logger.warning(f"[PARTICIPANT JOINED] User with ID {participant_identity} not found")
                 
                 except Room.DoesNotExist:
-                    print(f"[PARTICIPANT JOINED] Room {room_name} not found in database")
+                    logger.warning(f"[PARTICIPANT JOINED] Room {room_name} not found in database")
             
         # Handle participant_left event
         elif event_type == 'participant_left':
@@ -637,10 +551,6 @@ def webhook(request):
             participant_identity = participant_info.get('identity')
             participant_name = participant_info.get('name', 'Unknown')
             
-            print(f"\n[PARTICIPANT LEFT] Event Details:")
-            print(f"  Room: {room_name}")
-            print(f"  Participant Identity: {participant_identity}")
-            print(f"  Participant Name: {participant_name}")
             
             if room_name:
                 try:
@@ -660,20 +570,16 @@ def webhook(request):
                                     participant_found = Participant.objects.filter(room=room, user=user).exists()
                                     if participant_found:
                                         Participant.objects.filter(room=room, user=user).delete()
-                                        print(f"[PARTICIPANT LEFT] Removed participant with ID {participant_identity} from database")
                                         
                                         # Check if this was the host
                                         if room.host == user:
-                                            print(f"[PARTICIPANT LEFT] Host {participant_identity} left room {room_name}")
                                             
                                             # Handle host leaving - mark room inactive and delete all participants
                                             room.is_active = False
                                             room.save()
-                                            print(f"[PARTICIPANT LEFT] Marked room {room_name} as inactive in database")
                                             
                                             # Delete all participants for this room
                                             Participant.objects.filter(room=room).delete()
-                                            print(f"[PARTICIPANT LEFT] Removed all participants for room {room_name}")
                                             
                                             # Delete the LiveKit room
                                             try:
@@ -685,14 +591,11 @@ def webhook(request):
                                                         )
                                                 
                                                 delete_livekit_room()
-                                                print(f"[PARTICIPANT LEFT] Host left, deleted room {room_name} from LiveKit")
-                                            except Exception as e:
-                                                print(f"[PARTICIPANT LEFT] Error deleting LiveKit room: {str(e)}")
+                                            except Exception:
+                                                logger.exception("[PARTICIPANT LEFT] Error deleting LiveKit room")
                                                 
-                                    else:
-                                        print(f"[PARTICIPANT LEFT] No participant found with ID {participant_identity} in room {room_name}")
                                 except User.DoesNotExist:
-                                    print(f"[PARTICIPANT LEFT] User with ID {participant_identity} not found")
+                                    logger.warning(f"[PARTICIPANT LEFT] User with ID {participant_identity} not found")
                             
                             # If not found by ID, try by username/name
                             if participant_name and participant_name != 'Unknown':
@@ -701,22 +604,17 @@ def webhook(request):
                                 
                                 if matching_users.exists():
                                     for user in matching_users:
-                                        deleted_count = Participant.objects.filter(room=room, user=user).delete()[0]
-                                        if deleted_count > 0:
-                                            print(f"[PARTICIPANT LEFT] Removed participant with name {participant_name} from database")
+                                        Participant.objects.filter(room=room, user=user).delete()
                                         
                                         # Check if the user was a host
                                         if room.host == user:
-                                            print(f"[PARTICIPANT LEFT] Host {participant_name} left room {room_name}")
                                             
                                             # Handle host leaving - mark room inactive and delete all participants
                                             room.is_active = False
                                             room.save()
-                                            print(f"[PARTICIPANT LEFT] Marked room {room_name} as inactive in database")
                                             
                                             # Delete all participants for this room
                                             Participant.objects.filter(room=room).delete()
-                                            print(f"[PARTICIPANT LEFT] Removed all participants for room {room_name}")
                                             
                                             # Delete the LiveKit room
                                             try:
@@ -728,11 +626,8 @@ def webhook(request):
                                                         )
                                                 
                                                 delete_livekit_room()
-                                                print(f"[PARTICIPANT LEFT] Host left, deleted room {room_name} from LiveKit")
-                                            except Exception as e:
-                                                print(f"[PARTICIPANT LEFT] Error deleting LiveKit room: {str(e)}")
-                                else:
-                                    print(f"[PARTICIPANT LEFT] No users found with name {participant_name}")
+                                            except Exception:
+                                                logger.exception("[PARTICIPANT LEFT] Error deleting LiveKit room")
                             
                             # Fallback: try to find anonymous participants
                             if participant_identity and participant_identity.startswith('anonymous-'):
@@ -741,14 +636,10 @@ def webhook(request):
                                 
                                 if matching_users.exists():
                                     for user in matching_users:
-                                        deleted_count = Participant.objects.filter(room=room, user=user).delete()[0]
-                                        if deleted_count > 0:
-                                            print(f"[PARTICIPANT LEFT] Removed anonymous participant {participant_identity} from database")
-                                else:
-                                    print(f"[PARTICIPANT LEFT] No anonymous users found with identity {participant_identity}")
+                                        Participant.objects.filter(room=room, user=user).delete()
                                     
-                        except Exception as e:
-                            print(f"[PARTICIPANT LEFT] Error removing participant: {str(e)}")
+                        except Exception:
+                            logger.exception("[PARTICIPANT LEFT] Error removing participant")
                     
                     # Check current participant count in LiveKit
                     @sync_livekit
@@ -761,24 +652,19 @@ def webhook(request):
                     
                     participants_response = get_room_participants()
                     remaining_count = len(participants_response.participants)
-                    print(f"[PARTICIPANT LEFT] Room {room_name} has {remaining_count} remaining participants in LiveKit")
                     
                     # Ensure database count matches LiveKit count
                     db_count = Participant.objects.filter(room=room).count()
-                    print(f"[PARTICIPANT LEFT] Room {room_name} has {db_count} participants in database")
                     
                     # If counts don't match, sync them
                     if db_count != remaining_count:
-                        print(f"[PARTICIPANT LEFT] Participant counts don't match. Syncing database with LiveKit.")
                         
                         # Clear participants for this room and recreate from LiveKit data
                         if remaining_count == 0:
                             # If no remaining participants, simple clear the database
                             Participant.objects.filter(room=room).delete()
-                            print(f"[PARTICIPANT LEFT] Cleared all participants for empty room {room_name}")
                             
                             # If LiveKit shows no participants, mark room as inactive
-                            print(f"[PARTICIPANT LEFT] Room {room_name} is empty, marking as inactive")
                             room.is_active = False
                             room.save()
                             
@@ -792,71 +678,17 @@ def webhook(request):
                                         )
                                 
                                 delete_livekit_room()
-                                print(f"[PARTICIPANT LEFT] Deleted room {room_name} from LiveKit")
-                            except Exception as e:
-                                print(f"[PARTICIPANT LEFT] Error deleting LiveKit room: {str(e)}")
+                            except Exception:
+                                logger.exception("[PARTICIPANT LEFT] Error deleting LiveKit room")
                     
                 except Room.DoesNotExist:
-                    print(f"[PARTICIPANT LEFT] Room {room_name} not found in database")
+                    logger.warning(f"[PARTICIPANT LEFT] Room {room_name} not found in database")
         
-        elif event_type == 'track_published':
-            room_info = event_data.get('room', {})
-            participant_info = event_data.get('participant', {})
-            track_info = event_data.get('track', {})
-            
-            room_name = room_info.get('name')
-            participant_identity = participant_info.get('identity')
-            participant_name = participant_info.get('name')
-            track_type = track_info.get('type')
-            track_source = track_info.get('source')
-            track_sid = track_info.get('sid')
-            track_name = track_info.get('name')
-            
-            print(f"\n[TRACK PUBLISHED] Event Details:")
-            print(f"  Room: {room_name}")
-            print(f"  Participant Identity: {participant_identity}")
-            print(f"  Participant Name: {participant_name}")
-            print(f"  Track Type: {track_type}")
-            print(f"  Track Source: {track_source}")
-            print(f"  Track SID: {track_sid}")
-            print(f"  Track Name: {track_name}")
-            print(f"  Track Info: {json.dumps(track_info, indent=2)}")
-            
-        elif event_type == 'track_unpublished':
-            room_info = event_data.get('room', {})
-            participant_info = event_data.get('participant', {})
-            track_info = event_data.get('track', {})
-            
-            room_name = room_info.get('name')
-            participant_identity = participant_info.get('identity')
-            participant_name = participant_info.get('name')
-            track_type = track_info.get('type')
-            track_source = track_info.get('source')
-            track_sid = track_info.get('sid')
-            track_name = track_info.get('name')
-            
-            print(f"\n[TRACK UNPUBLISHED] Event Details:")
-            print(f"  Room: {room_name}")
-            print(f"  Participant Identity: {participant_identity}")
-            print(f"  Participant Name: {participant_name}")
-            print(f"  Track Type: {track_type}")
-            print(f"  Track Source: {track_source}")
-            print(f"  Track SID: {track_sid}")
-            print(f"  Track Name: {track_name}")
-            print(f"  Track Info: {json.dumps(track_info, indent=2)}")
-        else:
-            print(f"\n[UNHANDLED EVENT] {event_type}")
-            print(f"[UNHANDLED EVENT] Data: {json.dumps(event_data, indent=2)}")
-        
-        print("===== WEBHOOK EVENT PROCESSED =====\n")
         # Return success
         return Response({'success': True})
     
     except Exception as e:
-        print(f"[WEBHOOK ERROR] {str(e)}")
-        import traceback
-        traceback.print_exc()
-        print("===== WEBHOOK EVENT FAILED =====\n")
+        logger.exception("Webhook error")
         return Response(
             {'error': str(e)},
             status=status.HTTP_400_BAD_REQUEST
@@ -901,7 +733,6 @@ def share_extract_in_room(request, room_id):
                     status=status.HTTP_404_NOT_FOUND
                 )
         
-        #print(f"Received extract data: {request.data}")
         
         # Create SharedExtract record
         shared_extract = SharedExtract.objects.create(
@@ -917,7 +748,6 @@ def share_extract_in_room(request, room_id):
             original_extract=paper_extract
         )
         
-        #print(f"Created SharedExtract: {shared_extract.id}, PDF link: {shared_extract.pdf_link}")
         
         # Return the created extract
         return Response({
@@ -942,7 +772,7 @@ def share_extract_in_room(request, room_id):
             status=status.HTTP_404_NOT_FOUND
         )
     except Exception as e:
-        print(f"Error sharing extract: {str(e)}")
+        logger.exception("Error sharing extract")
         return Response(
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -976,11 +806,6 @@ def get_room_extracts(request, room_id):
                 'shared_at': extract.shared_at.isoformat()
             })
         
-        #print(f"Room {room_id}: Found {len(extracts_data)} extracts")
-        #if extracts_data:
-        #    print(f"Sample extract PDF link: {extracts_data[0].get('pdf_link')}")
-        #    print(f"Sample extract publication link: {extracts_data[0].get('publication_link')}")
-        
         return Response({
             'room_id': room_id,
             'extracts': extracts_data
@@ -992,7 +817,7 @@ def get_room_extracts(request, room_id):
             status=status.HTTP_404_NOT_FOUND
         )
     except Exception as e:
-        print(f"Error getting room extracts: {str(e)}")
+        logger.exception("Error getting room extracts")
         return Response(
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -1033,11 +858,9 @@ def update_participant_role(request, room_id, participant_id):
             return Response({'error': 'Cannot change role of a host'}, status=status.HTTP_403_FORBIDDEN)
         
         # Update the role
-        old_role = participant.role
         participant.role = new_role
         participant.save()
         
-        print(f"Updated participant {participant.user.username} role from {old_role} to {new_role}")
         
         # Return success
         return Response({
@@ -1054,7 +877,7 @@ def update_participant_role(request, room_id, participant_id):
     except Room.DoesNotExist:
         return Response({'error': 'Room not found'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        print(f"Error updating participant role: {str(e)}")
+        logger.exception("Error updating participant role")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])

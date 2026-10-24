@@ -15,7 +15,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing "username" query parameter' }, { status: 400 });
   }
 
-  console.log(`[Token API] Requesting token for room: ${room}, user: ${username}, role: ${role}`);
 
   try {
     // Build the backend URL
@@ -26,9 +25,8 @@ export async function GET(req: NextRequest) {
     const authHeader = req.headers.get('authorization');
     if (authHeader) {
       headers['Authorization'] = authHeader;
-      console.log("[Token API] Forwarding auth header to backend");
     } else {
-      console.log("[Token API] WARNING: No auth header found - will not be authenticated!");
+      console.warn("[Token API] WARNING: No auth header found - will not be authenticated!");
     }
     
     const response = await fetch(backendUrl, { headers });
@@ -40,7 +38,6 @@ export async function GET(req: NextRequest) {
     }
     
     const data = await response.json();
-    console.log(`[Token API] Successfully received token with role: ${data.role}, can_publish: ${data.can_publish}`);
     return NextResponse.json(data);
   } catch (error: any) {
     console.error('Error generating token:', error);

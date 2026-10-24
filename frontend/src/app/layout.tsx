@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import Navbar from "@/components/ui/Navbar";
-import AuthStateDebugger from "@/components/authentication/authdebugger";
 import PageLoadDelay from "@/components/ui/pageLoadDelay";
 
 const geistSans = localFont({
@@ -35,7 +34,6 @@ export default function RootLayout({children,}: Readonly<{children: React.ReactN
           <main className="flex-grow w-full">
             <PageLoadDelay>{children}</PageLoadDelay>
           </main>
-          {/* <AuthStateDebugger /> */}
         </div>
       </body>
     </html>
