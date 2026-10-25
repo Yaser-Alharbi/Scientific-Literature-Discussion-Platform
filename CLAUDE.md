@@ -10,9 +10,9 @@ Fix and clean up first; redesign a piece only when clearly better and approved b
 ## How we work
 - The plan and live status are in `docs/ROADMAP.md`. Read it first; update it when a phase finishes.
 - Each phase has one dedicated agent in `.claude/agents/`. Stay inside your phase's scope; note out-of-scope findings in `docs/ROADMAP.md` under "Parking lot" instead of fixing them.
-- Phases run in order. One phase = one branch/PR; agents work on the session's branch.
+- Phases run in order.
 - Never commit secrets. Ask before deleting anything not listed in the phase scope.
-- Commit and push only to the session's working branch, never to `main`. Never open or merge PRs; the user reviews and merges.
+- Commit and push directly to `cleanup`. Only a big, isolated change gets its own branch, named for what it does (e.g. `tooling-setup`). Never commit to `main`; never open or merge PRs; the user reviews and merges.
 - Never assume third-party credentials (Firebase, LiveKit, SerpAPI) still work; test them.
 - Don't upgrade frameworks or dependencies unless the phase explicitly says so.
 
