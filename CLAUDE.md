@@ -14,6 +14,7 @@ Fix and clean up first; redesign a piece only when clearly better and approved b
 - Never commit secrets. Ask before deleting anything not listed in the phase scope.
 - Commit and push directly to `cleanup`. Only a big, isolated change gets its own branch, named for what it does (e.g. `tooling-setup`). Never commit to `main`; never open or merge PRs; the user reviews and merges.
 - Commits are authored by Yaser <yaser.e.alharbi@gmail.com>; Claude appears only as a `Co-Authored-By` trailer, never as sole author.
+- Write every commit message with the `/anthropic-skills:commit-msg` skill; its "no AI attribution" line doesn't apply to the `Co-Authored-By` trailer.
 - Never assume third-party credentials (Firebase, LiveKit, SerpAPI) still work; test them.
 - Don't upgrade frameworks or dependencies unless the phase explicitly says so.
 
@@ -34,7 +35,7 @@ Fix and clean up first; redesign a piece only when clearly better and approved b
 
 ## Workflow per task
 1. Read the relevant code and `docs/ROADMAP.md`.
-2. State a short plan; wait for approval if it touches more than <<FILL: e.g. 3 files or ~100 lines>>.
+2. State a short plan; wait for approval if it touches more than 3 files or ~100 lines.
 3. Before refactoring, add or confirm tests that pin current behaviour.
 4. Implement, then run the Definition of done.
 5. Report: what changed and why, files touched, checks run, parking-lot entries.
