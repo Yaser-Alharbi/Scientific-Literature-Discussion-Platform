@@ -2,22 +2,24 @@
 
 Status: `[ ]` todo · `[~]` in progress · `[x]` done. Update on completion.
 
+Each phase is built on its own branch (see the Branch column), merged into `cleanup` through a PR by the user; the phase is ticked in that PR.
+
 Direction: **fix and rebuild the core first; deploy last.** Same stack (Django, Next.js, Firebase, LiveKit), same features (auth/profile, paper search, extracts, rooms). The existing code is the base: fix and clean up first, redesign a piece only when that is clearly better, and reuse what the old version got right.
 
-| # | Phase | Agent | Status |
-|---|-------|-------|--------|
-| 1 | Repo hygiene | `hygiene` | [x] done, credentials verified by user (see `docs/audit.md`) |
-| 2 | Move/organize only | `organizer` | [x] done and approved by user |
-| 3 | Tooling (lint, typecheck, test setup) | `tooling` | [ ] |
-| 4 | Core: foundations (shared infrastructure, auth, profile) | `core-foundations` | [ ] |
-| 5 | Core: paper search | `core-papers` | [ ] |
-| 6 | Core: extracts | `core-extracts` | [ ] |
-| 7 | Core: rooms (live discussion) | `core-rooms` | [ ] |
-| 8 | UI cleanup | `ui-polisher` | [ ] |
-| 9 | Demo user | `demo-user` | [ ] |
-| 10 | Maintenance (CI, Docker, deps) | `maintainer` | [ ] |
-| 11 | README and portfolio polish | `readme-writer` | [ ] |
-| 12 | Deploy (final step) | `deployer` | [ ] |
+| # | Phase | Agent | Branch | Status |
+|---|-------|-------|--------|--------|
+| 1 | Repo hygiene | `hygiene` | `phase-1-hygiene` | [x] done, credentials verified by user (see `docs/audit.md`) |
+| 2 | Move/organize only | `organizer` | `phase-2-organizer` | [x] done and approved by user |
+| 3 | Tooling (lint, typecheck, test setup) | `tooling` | `phase-3-tooling` | [ ] |
+| 4 | Core: foundations (shared infrastructure, auth, profile) | `core-foundations` | `phase-4-foundations` | [ ] |
+| 5 | Core: paper search | `core-papers` | `phase-5-papers` | [ ] |
+| 6 | Core: extracts | `core-extracts` | `phase-6-extracts` | [ ] |
+| 7 | Core: rooms (live discussion) | `core-rooms` | `phase-7-rooms` | [ ] |
+| 8 | UI cleanup | `ui-polisher` | `phase-8-ui` | [ ] |
+| 9 | Demo user | `demo-user` | `phase-9-demo-user` | [ ] |
+| 10 | Maintenance (CI, Docker, deps) | `maintainer` | `phase-10-maintenance` | [ ] |
+| 11 | README and portfolio polish | `readme-writer` | `phase-11-readme` | [ ] |
+| 12 | Deploy (final step) | `deployer` | `phase-12-deploy` | [ ] |
 
 ## 1. Repo hygiene (done)
 Removed cruft, dead code and debug output; credentials verified. See `docs/audit.md`.
@@ -26,7 +28,7 @@ Removed cruft, dead code and debug output; credentials verified. See `docs/audit
 Split `livestream/views.py` (LiveKit helpers to `services.py`, webhook handlers to `webhook_events.py`) and `papers/views.py` (enrichment to `services.py`); renamed `PageLoadDelay.tsx`. No logic changes.
 
 ## 3. Tooling
-Make the "Definition of done" in `CLAUDE.md` real, so every later phase can run the same checks. No feature or behavior changes. Big and isolated, so it goes on its own branch, `tooling-setup`. Follow `docs/testing.md`.
+Make the "Definition of done" in `CLAUDE.md` real, so every later phase can run the same checks. No feature or behavior changes. Follow `docs/testing.md`.
 - Frontend: add a `typecheck` script (`tsc --noEmit`). Get `npm run lint` to a known state: either fix the existing problems (mostly `no-explicit-any`) or record a baseline so new problems fail. Ask the user which. Add a frontend test runner only if the core phases need frontend logic tests (new package, needs approval).
 - Backend: a test setup that runs without a browser, using Django's built-in runner (no new packages) with SerpAPI, LiveKit, Firebase and network calls faked at the boundary. The existing Selenium suite stays, clearly marked as optional and skipped by default. Make `pip install -r backend/requirements.txt` work cleanly (re-encode the UTF-16 file to UTF-8, document the supported Python version; any version bump needs approval).
 - Seed the suite with characterization tests that pin today's behavior of the code the core phases will touch (starting with the webhook handlers and paper enrichment, which have no tests).
