@@ -12,7 +12,7 @@ Fix and clean up first; redesign a piece only when clearly better and approved b
 - Each phase has one dedicated agent in `.claude/agents/`. Stay inside your phase's scope; note out-of-scope findings in `docs/ROADMAP.md` under "Parking lot" instead of fixing them.
 - Phases run in order.
 - Never commit secrets. Ask before deleting anything not listed in the phase scope.
-- Commit and push directly to `cleanup`. Only a big, isolated change gets its own branch, named for what it does (e.g. `tooling-setup`). Never commit to `main`; never open or merge PRs; the user reviews and merges.
+- Each phase gets its own branch, cut from up-to-date `cleanup` and named `phase-<n>-<slug>`: `phase-3-tooling`, `phase-4-foundations`, `phase-5-papers`, `phase-6-extracts`, `phase-7-rooms`, `phase-8-ui`, `phase-9-demo-user`, `phase-10-maintenance`, `phase-11-readme`, `phase-12-deploy`. Commit and push to that branch only; never to `cleanup` or `main` directly. Never open or merge PRs: the user opens the PR into `cleanup`, reviews and merges it, and the phase's `[x]` in `docs/ROADMAP.md` goes in that PR. Start the next phase only after the previous one is merged.
 - Commits are authored by Yaser <yaser.e.alharbi@gmail.com>; Claude appears only as a `Co-Authored-By` trailer, never as sole author.
 - Write every commit message with the `/anthropic-skills:commit-msg` skill; its "no AI attribution" line doesn't apply to the `Co-Authored-By` trailer.
 - Never assume third-party credentials (Firebase, LiveKit, SerpAPI) still work; test them.
