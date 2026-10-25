@@ -13,6 +13,7 @@ Fix and clean up first; redesign a piece only when clearly better and approved b
 - Phases run in order.
 - Never commit secrets. Ask before deleting anything not listed in the phase scope.
 - Commit and push directly to `cleanup`. Only a big, isolated change gets its own branch, named for what it does (e.g. `tooling-setup`). Never commit to `main`; never open or merge PRs; the user reviews and merges.
+- Commits are authored by Yaser <yaser.e.alharbi@gmail.com>; Claude appears only as a `Co-Authored-By` trailer, never as sole author.
 - Never assume third-party credentials (Firebase, LiveKit, SerpAPI) still work; test them.
 - Don't upgrade frameworks or dependencies unless the phase explicitly says so.
 
