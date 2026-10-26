@@ -1,7 +1,6 @@
 # backend/authentication/test_password.py
 """POST /api/set-password and POST /api/sync-reset-password."""
 
-from authentication.models import User
 from testsupport.api import FirebaseApiCase, make_user
 
 
@@ -68,9 +67,36 @@ class SyncResetPasswordTests(FirebaseApiCase):
         self.assertTrue(alice.check_password('reset-pw-5'))
         self.assertFalse(bob.check_password('reset-pw-5'))
 
-    def test_unknown_email_is_404(self):
-        make_user('alice')
-        response = self.call('post', '/api/sync-reset-password', 'tok-alice',
-                             {'email': 'nobody@example.com', 'password': 'x-pass-1'})
-        self.assertEqual((response.status_code, response.json()), (404, {'error': 'User not found'}))
-        self.assertEqual(User.objects.count(), 1)
+
+class SyncResetPasswordSecurityTests(FirebaseApiCase):
+    def test_anonymous_request_cannot_change_anyones_password(self):
+        # catches: AllowAny, which let anyone overwrite any user's Django password by email
+        alice = make_user('alice')
+        alice.set_password('old-pass-1')
+        alice.save()
+        response = self.call('post', '/api/sync-reset-password', None,
+                             {'email': 'alice@example.com', 'password': 'x-hack-1'})
+        self.assertEqual(response.status_code, 401)
+        alice.refresh_from_db()
+        self.assertTrue(alice.check_password('old-pass-1'))
+
+    def test_email_in_the_body_cannot_redirect_the_change_to_another_user(self):
+        # catches: the target chosen by the email in the request instead of by the caller's token
+        alice = make_user('alice')
+        bob = make_user('bob')
+        self.call('post', '/api/sync-reset-password', 'tok-alice',
+                  {'email': 'bob@example.com', 'password': 'pw-for-alice'})
+        alice.refresh_from_db()
+        bob.refresh_from_db()
+        self.assertTrue(alice.check_password('pw-for-alice'))
+        self.assertFalse(bob.check_password('pw-for-alice'))
+
+    def test_missing_password_is_400_and_leaves_the_password_usable(self):
+        # catches: set_password(None), which stores an unusable password
+        alice = make_user('alice')
+        alice.set_password('old-pass-1')
+        alice.save()
+        response = self.call('post', '/api/sync-reset-password', 'tok-alice', {})
+        self.assertEqual(response.status_code, 400)
+        alice.refresh_from_db()
+        self.assertTrue(alice.check_password('old-pass-1'))

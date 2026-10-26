@@ -116,19 +116,12 @@ def get_research_interests(request):
 
     
 @api_view(['POST'])
-@permission_classes([AllowAny])
 def sync_reset_password(request):
-    try:
-        email = request.data.get('email')
-        password = request.data.get('password')
+    # The reset page signs in with the new password first, so the caller is always authenticated.
+    password = request.data.get('password')
+    if not password:
+        return Response({"error": "No password provided"}, status=400)
 
-        user = User.objects.get(email=email)
-        user.set_password(password)
-        user.save()
-        
-        return Response({"message": "Password synced successfully"})
-            
-    except User.DoesNotExist:
-        return Response({"error": "User not found"}, status=404)
-    except Exception as e:
-        return Response({"error": str(e)}, status=500)
+    request.user.set_password(password)
+    request.user.save()
+    return Response({"message": "Password synced successfully"})
