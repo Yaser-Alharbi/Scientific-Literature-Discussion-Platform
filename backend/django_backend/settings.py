@@ -16,8 +16,9 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 from dotenv import load_dotenv
-import os
 import json
+import logging
+import os
 
 load_dotenv()
 
@@ -202,7 +203,7 @@ if os.environ.get('FIREBASE_SERVICE_ACCOUNT'):
     cred = credentials.Certificate(FIREBASE_CREDENTIALS)
     firebase_admin.initialize_app(cred)
 else:
-    print("Warning: FIREBASE_SERVICE_ACCOUNT not set - Firebase integration disabled")
+    logging.getLogger(__name__).warning("FIREBASE_SERVICE_ACCOUNT not set - Firebase integration disabled")
 
 
 AUTH_USER_MODEL = 'authentication.User'
