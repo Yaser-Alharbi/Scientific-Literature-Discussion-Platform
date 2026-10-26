@@ -52,7 +52,7 @@ Everything else is a fix. E1 is the only approved redesign; P1 is declined.
 
 **Change**
 - `verify_firebase_token(request)` in `authentication/authentication.py`: reads the `Bearer` header, verifies, returns the decoded claims, raises `AuthenticationFailed` for a missing or invalid token. `FirebaseAuthentication.authenticate` and `register` (the only view that needs claims before a user exists) both use it.
-- Catch only `ValueError` and `auth.InvalidIdTokenError` (parent of the expired and revoked errors; checked in the installed firebase_admin 6.7). `CertificateFetchError` or "Firebase not initialised" are server problems: log and let them surface as 5xx, not 401.
+- Catch only `ValueError` and `auth.InvalidIdTokenError` (parent of the expired and revoked errors; checked in the installed firebase_admin 6.7). `CertificateFetchError` and other SDK errors are server problems: they propagate as 5xx, not 401.
 - Unregistered uid: `AuthenticationFailed("User is authenticated with Firebase but not registered")`.
 - `authenticate_header` stays, so these stay 401 and not 403.
 - Views use `request.user`; the dead blocks and unreachable branches go.
@@ -73,7 +73,7 @@ Everything else is a fix. E1 is the only approved redesign; P1 is declined.
 | invalid token body | 401, `error` contains "Invalid or expired" |
 | unregistered body | 401, `error` contains "not registered" |
 | expired token (fake raises `auth.ExpiredIdTokenError`) | 401, same invalid message |
-| Firebase not initialised / cert fetch error (fake raises `auth.CertificateFetchError`) | not 401 (propagates as 5xx), logged at ERROR |
+| cert fetch error (fake raises `auth.CertificateFetchError`) | not 401 (propagates as 5xx) |
 
 **Mutants** (`backend/mutations/phase4/`, see section 6 for format): M01 user looked up as `User.objects.first()`; M02 unregistered uid falls back to first user; M03 scheme check loosened to `split(' ')[-1]`; M32 `authenticate_header` removed (403 instead of 401); M33 invalid-token handler returns a user instead of raising.
 
@@ -224,7 +224,7 @@ Mutants: M25 `order_by('name')` dropped; M26 `IsAuthenticated` restored; M27 ret
 ### B10. Logging: fix
 **What is wrong**: `print` at `authentication/authentication.py:38`, `settings.py:205` (startup warning), `papers/services.py:24,29,76,135`. (`papers/views.py` has none now; the roadmap line predates phase 2.) `papers/services.py` has no `logger`. There is no `LOGGING` setting, so Django's default applies: records at WARNING and above reach stderr, INFO and below are dropped. These prints are therefore not covered by any log config and the retry messages interleave with test output.
 
-**Fix**: module `logger = logging.getLogger(__name__)`; WARNING for transient retry lines (`services.py:24,29`), ERROR with `exc_info` for the two swallowed enrichment exceptions (`:76,135`), WARNING in `authentication.py` (and ERROR for Firebase not initialised), `logging.getLogger(__name__).warning(...)` in `settings.py` (a `logger` cannot be configured yet at settings import, but the default handler prints it). **No `LOGGING` dict**: it would be a new config option and the default output is sufficient. Messages must not include tokens or the Authorization header (already removed in phase 1).
+**Fix**: module `logger = logging.getLogger(__name__)`; WARNING for transient retry lines (`services.py:24,29`), ERROR with `exc_info` for the two swallowed enrichment exceptions (`:76,135`), WARNING in `authentication.py`, `logging.getLogger(__name__).warning(...)` in `settings.py` (a `logger` cannot be configured yet at settings import, but the default handler prints it). **No `LOGGING` dict**: it would be a new config option and the default output is sufficient. Messages must not include tokens or the Authorization header (already removed in phase 1).
 
 Papers: this is a four-line swap in phase 5's file, mechanical only, no logic; flagged so phase 5 rebases onto it. Approved (decision 9).
 
@@ -377,4 +377,4 @@ Approved by the user after reading this analysis. Implementation has not started
 - **Webhook (accepted).** The one-line `@authentication_classes([])` on the LiveKit webhook in `livestream/views.py` stays minimal. Phase 7 replaces the webhook's authentication with `WebhookReceiver` signature verification, which makes the decorator part of that rewrite.
 - **Removed test (accepted).** `SyncResetPasswordTests.test_unknown_email_is_404` was removed because `sync_reset_password` no longer reads the body email.
 - **M33 repurposed.** The planned M33 (invalid-token handler returns a user) was replaced by M33 `token-auth-restored` (`TokenAuthentication` back in the defaults). The M30-M42 numbering in section 6 otherwise stands.
-- **Pending (user still deciding): Firebase not initialised.** Whether a missing Firebase app (a `ValueError`, same type as an invalid token) should stay a 401 or become a 5xx is undecided. The wording in B1 and its test table is left unchanged for now.
+- **Firebase not initialised (accepted).** A missing Firebase app raises a `ValueError`, the same type as an invalid token, so it stays an invalid-token 401 and is logged at WARNING with the SDK's message. It is not a 5xx; only `CertificateFetchError` and other SDK errors propagate.
