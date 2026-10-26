@@ -77,3 +77,8 @@ class FirebaseAuthenticationTests(FirebaseApiCase):
         # pins the decision that a bad token is always rejected, even where anonymous access is allowed
         response = self.call('get', '/api/livestream/rooms/', 'not-a-token')
         self.assertEqual(response.status_code, 401)
+
+    def test_tokens_are_verified_with_a_60_second_clock_skew_allowance(self):
+        # catches: zero tolerance, which rejects fresh tokens as "used too early" when the server clock is slightly behind
+        self.call('get', '/api/user-profile', 'tok-alice')
+        self.assertEqual(self.verify_calls, [{'clock_skew_seconds': 60}])

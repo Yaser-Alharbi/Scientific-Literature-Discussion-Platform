@@ -4,6 +4,8 @@ from firebase_admin import auth
 from .models import User
 
 BEARER_PREFIX = 'Bearer '
+# a server clock a few seconds behind Google's would otherwise reject fresh tokens as issued in the future
+CLOCK_SKEW_SECONDS = 60
 
 
 def bearer_token(request):
@@ -18,7 +20,7 @@ def verify_firebase_token(token):
     Other errors (Firebase unreachable, certificates not fetchable) are server problems and propagate.
     """
     try:
-        return auth.verify_id_token(token)
+        return auth.verify_id_token(token, clock_skew_seconds=CLOCK_SKEW_SECONDS)
     except (ValueError, auth.InvalidIdTokenError):
         raise exceptions.AuthenticationFailed('Invalid or expired Firebase token')
 
