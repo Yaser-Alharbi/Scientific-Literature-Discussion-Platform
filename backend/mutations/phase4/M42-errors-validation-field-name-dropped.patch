@@ -1,0 +1,13 @@
+diff --git a/backend/django_backend/api_errors.py b/backend/django_backend/api_errors.py
+index a6a1409..0682eb2 100644
+--- a/backend/django_backend/api_errors.py
++++ b/backend/django_backend/api_errors.py
+@@ -6,7 +6,7 @@ from rest_framework.views import exception_handler
+ 
+ def _messages(detail):
+     if isinstance(detail, dict):
+-        return ' '.join(f'{field}: {_messages(value)}' for field, value in detail.items())
++        return ' '.join(_messages(value) for field, value in detail.items())
+     if isinstance(detail, list):
+         return ' '.join(_messages(item) for item in detail)
+     return str(detail)

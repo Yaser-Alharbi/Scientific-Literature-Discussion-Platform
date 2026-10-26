@@ -1,0 +1,11 @@
+diff --git a/backend/django_backend/api_errors.py b/backend/django_backend/api_errors.py
+index a6a1409..3bae063 100644
+--- a/backend/django_backend/api_errors.py
++++ b/backend/django_backend/api_errors.py
+@@ -17,5 +17,5 @@ def api_exception_handler(exc, context):
+     if response is not None:
+         # DRF puts the message under "detail" for most errors, and uses the bare field dict or list for validation errors
+         data = response.data
+-        response.data = {'error': _messages(data['detail'] if isinstance(data, dict) and 'detail' in data else data)}
++        response.data = {'detail': _messages(data['detail'] if isinstance(data, dict) and 'detail' in data else data)}
+     return response
