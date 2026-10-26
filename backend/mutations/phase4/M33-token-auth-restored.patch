@@ -1,0 +1,12 @@
+diff --git a/backend/django_backend/settings.py b/backend/django_backend/settings.py
+index 0095328..aee8b41 100644
+--- a/backend/django_backend/settings.py
++++ b/backend/django_backend/settings.py
+@@ -245,6 +245,7 @@ REST_FRAMEWORK = {
+     'DEFAULT_AUTHENTICATION_CLASSES': [
+         'authentication.authentication.FirebaseAuthentication',
+         'rest_framework.authentication.SessionAuthentication',
++        'rest_framework.authentication.TokenAuthentication',
+     ],
+     'EXCEPTION_HANDLER': 'django_backend.api_errors.api_exception_handler',
+     'DEFAULT_PERMISSION_CLASSES': [
