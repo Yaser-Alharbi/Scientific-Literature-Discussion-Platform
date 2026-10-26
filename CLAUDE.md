@@ -45,7 +45,7 @@ Stop and ask if scope is unclear, a fix needs out-of-scope changes, or a failure
 ## Definition of done
 - Frontend (`frontend/`): `npm run lint` (baseline ratchet, inline disables ignored) · `npm run typecheck` · `npm run build` (needs the `NEXT_PUBLIC_*` variables from `.env.example`; placeholders are enough)
 - Backend (`backend/`, Python 3.12): `python manage.py test` (network blocked; Selenium suite runs only with `RUN_SELENIUM=1`) · `python manage.py makemigrations --check --dry-run`
-- When changing tested production code: `python scripts/mutation_check.py mutations/<phase>` must report no stale or invalid patches. A changed behavior starts with a failing test.
+- When changing tested production code: `python scripts/mutation_check.py` (runs every phase's patches) must report every patch killed. A changed behavior starts with a failing test; see `docs/testing.md` for stale patches.
 All available checks must pass and actually be run.
 
 ## Architecture
