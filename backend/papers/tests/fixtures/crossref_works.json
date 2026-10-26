@@ -1,0 +1,22 @@
+{
+  "status": "ok",
+  "message-type": "work-list",
+  "message-version": "1.0.0",
+  "message": {
+    "facets": {},
+    "total-results": 1234,
+    "items": [
+      {
+        "indexed": {"date-parts": [[2024, 5, 1]], "date-time": "2024-05-01T10:00:00Z", "timestamp": 1714557600000},
+        "publisher": "ACM",
+        "title": ["Graph attention networks"],
+        "DOI": "10.1000/gat.2017.1",
+        "type": "journal-article",
+        "URL": "https://doi.org/10.1000/gat.2017.1",
+        "score": 42.5
+      }
+    ],
+    "items-per-page": 1,
+    "query": {"start-index": 0, "search-terms": null}
+  }
+}

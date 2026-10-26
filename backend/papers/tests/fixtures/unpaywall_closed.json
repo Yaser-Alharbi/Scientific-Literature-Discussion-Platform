@@ -1,0 +1,18 @@
+{
+  "doi": "10.1000/closed.1",
+  "doi_url": "https://doi.org/10.1000/closed.1",
+  "title": "A closed paper",
+  "genre": "journal-article",
+  "is_paratext": false,
+  "published_date": "2019-01-01",
+  "year": 2019,
+  "journal_name": null,
+  "publisher": null,
+  "is_oa": false,
+  "oa_status": "closed",
+  "has_repository_copy": false,
+  "best_oa_location": null,
+  "first_oa_location": null,
+  "oa_locations": [],
+  "data_standard": 2
+}

@@ -1,0 +1,67 @@
+{
+  "search_metadata": {
+    "id": "6650a1b2c3d4e5f6a7b8c9d0",
+    "status": "Success",
+    "json_endpoint": "https://serpapi.com/searches/6650a1b2c3d4e5f6a7b8c9d0.json",
+    "created_at": "2025-05-24 10:00:00 UTC",
+    "processed_at": "2025-05-24 10:00:01 UTC",
+    "google_scholar_url": "https://scholar.google.com/scholar?q=graph+neural+networks&num=20",
+    "total_time_taken": 1.2
+  },
+  "search_parameters": {
+    "engine": "google_scholar",
+    "q": "graph neural networks",
+    "hl": "en",
+    "num": "20"
+  },
+  "search_information": {
+    "organic_results_state": "Results for exact spelling",
+    "total_results": 2
+  },
+  "organic_results": [
+    {
+      "position": 0,
+      "title": "Graph attention networks",
+      "result_id": "aBcDeFgHiJkL",
+      "link": "https://arxiv.org/abs/1710.10903",
+      "snippet": "We present graph attention networks (GATs), novel neural network architectures that operate on graph-structured data.",
+      "publication_info": {
+        "summary": "P Velickovic, G Cucurull, A Casanova - arXiv preprint, 2017 - arxiv.org",
+        "authors": [
+          {"name": "P Velickovic", "link": "https://scholar.google.com/citations?user=abc", "serpapi_scholar_link": "https://serpapi.com/search.json?author_id=abc&engine=google_scholar_author", "author_id": "abc"}
+        ]
+      },
+      "resources": [
+        {"title": "arxiv.org", "file_format": "PDF", "link": "https://arxiv.org/pdf/1710.10903"}
+      ],
+      "inline_links": {
+        "serpapi_cite_link": "https://serpapi.com/search.json?engine=google_scholar_cite&q=aBcDeFgHiJkL",
+        "cited_by": {"total": 15000, "link": "https://scholar.google.com/scholar?cites=1", "cites_id": "1", "serpapi_scholar_link": "https://serpapi.com/search.json?cites=1&engine=google_scholar"},
+        "related_pages_link": "https://scholar.google.com/scholar?q=related:aBcDeFgHiJkL",
+        "versions": {"total": 5, "link": "https://scholar.google.com/scholar?cluster=1", "cluster_id": "1"}
+      }
+    },
+    {
+      "position": 1,
+      "title": "Semi-supervised classification with graph convolutional networks",
+      "result_id": "mNoPqRsTuVwX",
+      "link": "https://arxiv.org/abs/1609.02907",
+      "snippet": "We present a scalable approach for semi-supervised learning on graph-structured data.",
+      "publication_info": {
+        "summary": "TN Kipf, M Welling - arXiv preprint, 2016 - arxiv.org"
+      },
+      "resources": [
+        {"title": "arxiv.org", "file_format": "PDF", "link": "https://arxiv.org/pdf/1609.02907"}
+      ],
+      "inline_links": {
+        "serpapi_cite_link": "https://serpapi.com/search.json?engine=google_scholar_cite&q=mNoPqRsTuVwX",
+        "cited_by": {"total": 40000, "link": "https://scholar.google.com/scholar?cites=2", "cites_id": "2", "serpapi_scholar_link": "https://serpapi.com/search.json?cites=2&engine=google_scholar"}
+      }
+    }
+  ],
+  "serpapi_pagination": {
+    "current": 1,
+    "next": "https://serpapi.com/search.json?engine=google_scholar&q=graph+neural+networks&start=20",
+    "other_pages": {"2": "https://serpapi.com/search.json?engine=google_scholar&q=graph+neural+networks&start=20"}
+  }
+}
