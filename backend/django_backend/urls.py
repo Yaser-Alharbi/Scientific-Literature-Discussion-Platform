@@ -2,7 +2,6 @@
 
 from django.contrib import admin
 from django.urls import path, include
-from authentication import views
 from django.conf import settings
 from django.http import HttpResponse
 
@@ -12,7 +11,6 @@ def health_check(request):
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/check-user', views.check_user),
     path('', include('authentication.urls')),
     path('api/livestream/', include('livestream.urls')),
     path('api/papers/', include('papers.urls')),

@@ -1,6 +1,5 @@
 # backend/authentication/views.py
 
-import time
 from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -10,35 +9,6 @@ from .models import User, ResearchInterest
 import logging
 logger = logging.getLogger(__name__)
 # Create your views here.
-
-@api_view(['GET'])
-def verify_token(request):
-    try:
-        auth_header = request.headers.get('Authorization', '')
-        if not auth_header:
-            return Response({"error": "No token provided"}, status=401)
-        
-        token = auth_header.split('Bearer ')[1]
-        
-        # Verify token
-        decoded_token = auth.verify_id_token(token)
-        
-        # Check for clock skew issues
-        current_time = time.time()
-        iat = decoded_token.get('iat', 0)
-        CLOCK_SKEW_TOLERANCE = 300  # 5 minutes
-        
-        if iat > current_time + CLOCK_SKEW_TOLERANCE:
-            logger.warning(f"Clock skew detected: Token issued at {iat}, current time {current_time}")
-            return Response({
-                "uid": decoded_token["uid"],
-                "warning": "Clock skew detected"
-            })
-        
-        return Response({"uid": decoded_token["uid"]})
-    except Exception as e:
-        logger.exception("Token verification error")
-        return Response({"error": str(e)}, status=401)
 
 # first name and last name
 
@@ -144,33 +114,6 @@ def user_profile(request):
         return Response({"error": "Internal server error"}, status=500)
     
 
-@api_view(['GET'])
-def check_user(request):
-   try:
-       auth_header = request.headers.get('Authorization', '')
-       if not auth_header:
-           return Response({"error": "No token provided"}, status=401)
-           
-       token = auth_header.split('Bearer ')[1]
-       
-       try:
-           decoded_token = auth.verify_id_token(token)
-           
-           try:
-               user = User.objects.get(firebase_uid=decoded_token['uid'])
-               if user.is_active:  # Check profile completion
-                   return Response(status=200)
-               return Response({"message": "Profile incomplete"}, status=404)
-           except User.DoesNotExist:
-               return Response({"message": "User not found"}, status=404)
-       except Exception:
-           logger.exception("Token verification error")
-           return Response({"error": "Invalid token"}, status=401)
-   except Exception:
-       logger.exception("Unexpected error in check_user")
-       return Response({"error": "Server error"}, status=500)
-   
-   
 @api_view(['POST'])
 def set_password(request):
     try:
