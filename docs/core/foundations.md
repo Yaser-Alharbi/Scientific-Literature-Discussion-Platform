@@ -370,3 +370,11 @@ Approved by the user after reading this analysis. Implementation has not started
 7. **Clock skew**: `clock_skew_seconds=60` in the backend token verification, and the frontend "Token used too early" workarounds (F3.2) are deleted.
 8. **Failed signup**: delete the newly created Firebase user when backend registration fails (F3.6).
 9. **`papers/services.py`**: the four `print` calls become a logger, with the logger definition. This is an approved exception to the phase scope; the roadmap's mention of `papers/views.py` is outdated (it has no prints).
+
+### Decision updates after the backend step
+
+- **Lenient public views (supersedes the "bad token is always 401" wording in B1).** On a view that allows anonymous access (`AllowAny`), a bad, expired or unregistered token is treated as anonymous again, as before phase 4; `FirebaseAuthentication._allows_anonymous` decides. Protected views keep the distinct 401 messages. The test that pinned the strict behavior was flipped deliberately. **Phase 7 does this first:** Restore strict 401 for bad/expired tokens on public livestream views once all frontend calls use the shared API client with a fresh token; flip the lenient test back (`test_invalid_token_on_a_public_view_is_treated_as_anonymous` and `test_unregistered_uid_on_a_public_view_is_treated_as_anonymous` in `backend/authentication/test_firebase_auth.py`) and remove the `AllowAny` leniency in `FirebaseAuthentication._allows_anonymous`.
+- **Webhook (accepted).** The one-line `@authentication_classes([])` on the LiveKit webhook in `livestream/views.py` stays minimal. Phase 7 replaces the webhook's authentication with `WebhookReceiver` signature verification, which makes the decorator part of that rewrite.
+- **Removed test (accepted).** `SyncResetPasswordTests.test_unknown_email_is_404` was removed because `sync_reset_password` no longer reads the body email.
+- **M33 repurposed.** The planned M33 (invalid-token handler returns a user) was replaced by M33 `token-auth-restored` (`TokenAuthentication` back in the defaults). The M30-M42 numbering in section 6 otherwise stands.
+- **Pending (user still deciding): Firebase not initialised.** Whether a missing Firebase app (a `ValueError`, same type as an invalid token) should stay a 401 or become a 5xx is undecided. The wording in B1 and its test table is left unchanged for now.
