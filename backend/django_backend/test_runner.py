@@ -4,6 +4,7 @@ import ipaddress
 import os
 import socket
 
+from django.conf import settings
 from django.test.runner import DiscoverRunner
 
 
@@ -47,6 +48,9 @@ class NetworkBlockingRunner(DiscoverRunner):
 
     def setup_test_environment(self, **kwargs):
         super().setup_test_environment(**kwargs)
+        # settings.py reads SECRET_KEY from the environment; a clean checkout has none
+        self._env_secret_key = os.environ.get('SECRET_KEY')
+        settings.SECRET_KEY = self._env_secret_key or 'test-only-secret-key'
         self._proxies = {name: os.environ.pop(name) for name in PROXY_VARS if name in os.environ}
         self._originals = (socket.getaddrinfo, socket.socket.connect, socket.create_connection)
         original_getaddrinfo, original_connect, original_create_connection = self._originals
@@ -69,5 +73,6 @@ class NetworkBlockingRunner(DiscoverRunner):
 
     def teardown_test_environment(self, **kwargs):
         socket.getaddrinfo, socket.socket.connect, socket.create_connection = self._originals
+        settings.SECRET_KEY = self._env_secret_key
         os.environ.update(self._proxies)
         super().teardown_test_environment(**kwargs)
