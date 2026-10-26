@@ -1,12 +1,13 @@
 # backend/authentication/views.py
 
 from django.shortcuts import render
+from django.db import transaction
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from firebase_admin import auth
 from .models import User, ResearchInterest
-from .serializers import UserProfileSerializer
+from .serializers import ProfileUpdateSerializer, UserProfileSerializer
 import logging
 logger = logging.getLogger(__name__)
 # Create your views here.
@@ -93,35 +94,24 @@ def set_password(request):
 
 @api_view(['POST'])
 def update_profile(request):
+    # The frontend only ever sends a list; anything else is treated as "interests not part of this update".
+    payload = {k: v for k, v in request.data.items() if k != 'research_interests' or isinstance(v, list)}
+    serializer = ProfileUpdateSerializer(data=payload)
+    serializer.is_valid(raise_exception=True)
+    changes = dict(serializer.validated_data)
+    interest_names = changes.pop('research_interests', None)
+
     user = request.user
-    data = request.data
+    with transaction.atomic():
+        for field, value in changes.items():
+            setattr(user, field, value)
+        user.save()
+        if interest_names is not None:
+            user.research_interests.set(
+                [ResearchInterest.objects.get_or_create(name=name)[0] for name in interest_names]
+            )
 
-    if 'institution' in data:
-        user.institution = data['institution']
-    if 'bio' in data:
-        user.bio = data['bio']
-    if 'first_name' in data:
-        user.first_name = data['first_name']
-    if 'last_name' in data:
-        user.last_name = data['last_name']
-
-    user.save()
-
-    if 'research_interests' in data and isinstance(data.get('research_interests'), list):
-        user.research_interests.clear()
-        for interest_name in data['research_interests']:
-            interest, _ = ResearchInterest.objects.get_or_create(name=interest_name)
-            user.research_interests.add(interest)
-
-    return Response({
-        'email': user.email,
-        'institution': user.institution,
-        'bio': user.bio,
-        'research_interests': list(user.research_interests.values_list('name', flat=True)),
-        'first_name': user.first_name,
-        'last_name': user.last_name,
-        'password_set': user.password_set
-    })
+    return Response(UserProfileSerializer(user).data)
 
 
 @api_view(['GET'])

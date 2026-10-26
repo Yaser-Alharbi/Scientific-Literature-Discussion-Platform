@@ -1,6 +1,8 @@
 # backend/authentication/test_profile.py
 """GET /api/user-profile and POST /api/update-profile."""
 
+from unittest import mock
+
 from authentication.models import ResearchInterest, User
 from testsupport.api import FirebaseApiCase, make_user
 
@@ -106,3 +108,65 @@ class UpdateProfileTests(FirebaseApiCase):
 
     def test_unauthenticated_is_401(self):
         self.assertEqual(self.call('post', '/api/update-profile', None, {'bio': 'x'}).status_code, 401)
+
+
+class UpdateProfileValidationTests(FirebaseApiCase):
+    def setUp(self):
+        super().setUp()
+        self.alice = make_user('alice', institution='A', bio='B')
+        give_interests(self.alice, 'kept')
+
+    def assert_rejected(self, data, field=None):
+        response = self.call('post', '/api/update-profile', 'tok-alice', data)
+        self.assertEqual(response.status_code, 400)
+        error = response.json()['error']
+        if field:
+            self.assertIn(field, error)
+        self.alice.refresh_from_db()
+        self.assertEqual((self.alice.institution, self.alice.bio), ('A', 'B'))
+        self.assertEqual(set(self.alice.research_interests.values_list('name', flat=True)), {'kept'})
+
+    def test_too_long_institution_is_rejected_and_nothing_changes(self):
+        # catches: no length check (SQLite would accept it, PostgreSQL answers 500)
+        self.assert_rejected({'institution': 'x' * 101, 'bio': 'changed'}, 'institution')
+
+    def test_too_long_first_name_is_rejected(self):
+        self.assert_rejected({'first_name': 'x' * 151}, 'first_name')
+
+    def test_invalid_interest_names_are_rejected_and_nothing_changes(self):
+        # catches: blank, whitespace-only, null, non-string or over-long names reaching the database
+        for bad in ('x' * 101, '', '   ', None, 7):
+            with self.subTest(bad=bad):
+                self.assert_rejected({'bio': 'changed', 'research_interests': ['ok', bad]}, 'research_interests')
+        self.assertFalse(ResearchInterest.objects.filter(name='ok').exists())
+
+    def test_interest_names_are_trimmed(self):
+        # catches: " AI " and "AI" stored as two interests
+        response = self.call('post', '/api/update-profile', 'tok-alice', {'research_interests': ['  AI ']})
+        self.assertEqual(response.json()['research_interests'], ['AI'])
+        self.assertTrue(ResearchInterest.objects.filter(name='AI').exists())
+        self.assertFalse(ResearchInterest.objects.filter(name='  AI ').exists())
+
+    def test_response_includes_auth_methods(self):
+        response = self.call('post', '/api/update-profile', 'tok-alice', {'bio': 'x'})
+        self.assertEqual(set(response.json()), PROFILE_KEYS)
+        self.assertEqual(response.json()['auth_methods'], 'EMAIL')
+
+    def test_database_failure_midway_rolls_the_whole_update_back(self):
+        # catches: text fields saved and interests cleared before a later write fails
+        real = ResearchInterest.objects.get_or_create
+        calls = []
+
+        def flaky(**kwargs):
+            calls.append(kwargs)
+            if len(calls) == 2:
+                raise RuntimeError('database went away')
+            return real(**kwargs)
+
+        with mock.patch('authentication.views.ResearchInterest.objects.get_or_create', side_effect=flaky):
+            with self.assertRaises(RuntimeError):
+                self.call('post', '/api/update-profile', 'tok-alice', {'bio': 'changed', 'research_interests': ['a', 'b']})
+        self.alice.refresh_from_db()
+        self.assertEqual(self.alice.bio, 'B')
+        self.assertEqual(set(self.alice.research_interests.values_list('name', flat=True)), {'kept'})
+        self.assertFalse(ResearchInterest.objects.filter(name='a').exists())
