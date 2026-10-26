@@ -63,3 +63,36 @@ class FakeLiveKitDriftTests(unittest.TestCase):
         for name in ('list_participants', 'delete_room'):
             self.assertTrue(inspect.iscoroutinefunction(getattr(RoomService, name)), name)
             self.assertTrue(inspect.iscoroutinefunction(getattr(fake.room, name)), name)
+
+
+class FakeFirebaseTests(SimpleTestCase):
+    def verify(self, token):
+        from authentication import authentication
+        return authentication.auth.verify_id_token(token)
+
+    def test_uid_string_gives_claims_with_only_the_uid(self):
+        # catches: the plain-uid form (used by the livestream tests) stops working
+        from testsupport.auth import fake_firebase
+        with fake_firebase({'t': 'uid-1'}):
+            self.assertEqual(self.verify('t'), {'uid': 'uid-1'})
+
+    def test_claims_dict_is_returned_whole(self):
+        # catches: email or name claims dropped, which register depends on
+        from testsupport.auth import fake_firebase
+        claims = {'uid': 'uid-2', 'email': 'a@example.com', 'name': 'A B'}
+        with fake_firebase({'t': claims}):
+            self.assertEqual(self.verify('t'), claims)
+
+    def test_unknown_token_raises_value_error(self):
+        # catches: unknown tokens accepted
+        from testsupport.auth import fake_firebase
+        with fake_firebase({'t': 'uid-1'}):
+            with self.assertRaises(ValueError):
+                self.verify('other')
+
+    def test_error_is_raised_for_every_token(self):
+        # catches: the injected error ignored for known tokens
+        from testsupport.auth import fake_firebase
+        with fake_firebase({'t': 'uid-1'}, error=RuntimeError('down')):
+            with self.assertRaises(RuntimeError):
+                self.verify('t')
