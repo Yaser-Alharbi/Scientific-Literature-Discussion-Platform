@@ -1,6 +1,6 @@
 # Phase 4 analysis: foundations (shared infrastructure, auth, profile)
 
-Step 1 of the "Core rebuild" method. Analysis only: no code, tests or patches have been changed. Nothing below is started until the user approves it (Questions section at the end). Line numbers are for `phase-4-foundations` at `cleanup` HEAD.
+Step 1 of the "Core rebuild" method. Analysis only: no code, tests or patches have been changed. The decisions in section 8 are approved; nothing below is implemented yet. Line numbers are for `phase-4-foundations` at `cleanup` HEAD.
 
 Legend: **fix** = keep the design, correct the code. **redesign** = change the design, needs explicit approval, built on the existing implementation.
 
@@ -11,7 +11,7 @@ How the claims were checked: I read the code end to end and ran a throwaway prob
 | ID | Area | Verdict | One line |
 |----|------|---------|----------|
 | B1 | Backend auth helper | fix | Six copies of header parsing and `verify_id_token` in views; five of them are dead code behind `FirebaseAuthentication`, which itself swallows its own errors |
-| B2 | Dead and duplicate endpoints | fix (needs approval to delete) | `verify_token` and `check_user` are unused; `check_user` is routed twice |
+| B2 | Dead and duplicate endpoints | fix (delete approved) | `verify_token` and `check_user` are unused; `check_user` is routed twice |
 | B3 | Serializers | fix | Two hand-built profile dicts that already differ; no input validation |
 | B4 | Error convention | fix, plus one optional redesign (global handler) | Three body shapes; unexpected errors return 500 with `str(e)` |
 | B5 | `register` | fix | Missing or bad token and token without email return 500 |
@@ -26,10 +26,10 @@ How the claims were checked: I read the code end to end and ran a throwaway prob
 | F3 | `authStore` | fix | Retries a rejected stored token, 15 `any`, 3 `@ts-ignore`, dead constants, timers at import |
 | F4 | Shared types, `no-explicit-any` | fix | `User` type lives in the store; 22 of the 52 `any` are in phase 4 files |
 | F5 | Auth and profile flows | fix | Success path of login shows an error message; orphan Firebase user on failed signup |
-| E1 | Global `{"error": ...}` exception handler | redesign (optional) | See B4 and Question 3 |
-| P1 | Stop mirroring passwords into Django | redesign (not recommended) | See B7 and Question 6 |
+| E1 | Global `{"error": ...}` exception handler | redesign, **approved** | See B4 |
+| P1 | Stop mirroring passwords into Django | redesign, **declined** | See B7; kept in `docs/future-todos.md` |
 
-Everything else is a fix. Only E1 and P1 are redesigns and both are optional.
+Everything else is a fix. E1 is the only approved redesign; P1 is declined.
 
 ## 2. What works
 
@@ -80,7 +80,7 @@ Everything else is a fix. Only E1 and P1 are redesigns and both are optional.
 ### B2. Dead and duplicate endpoints: fix (deleting needs approval)
 - `verify_token` (`views.py:14-41`, route `authentication/urls.py:7` as `verify-token`, no `api/` prefix): frontend never calls it; `authStore.ts:81` defines `/api/verify-token`, a path that does not exist, and never uses it. Its clock-skew branch (`:31-36`) can never run, because `verify_id_token` rejects future-dated tokens first (zero skew by default).
 - `check_user` (`views.py:147-171`): never called by the frontend; routed twice, `django_backend/urls.py:15` and `authentication/urls.py:10`; labels `is_active=False` as "Profile incomplete" and answers 404.
-- **Recommend**: delete both views and their routes (also removes the duplicate). If you want to keep either, I pin its behavior and keep it. Question 4.
+- **Approved (decision 4)**: delete both views and their routes (also removes the duplicate).
 - Tests: none for a removed route (docs/testing.md: no asserting that a removed name stays removed). Evidence: `grep` finds no frontend caller; the mutation runner and the whole suite stay green.
 
 ### B3. Serializer convention: fix
@@ -97,7 +97,7 @@ Everything else is a fix. Only E1 and P1 are redesigns and both are optional.
 | profile shape | alice: institution "QMUL", bio "b", first "Alice", last "Smith", auth_methods "EMAIL", password_set True, interests {"biology","zoology"}; bob has interest "chemistry" | 200; keys exactly `{email, institution, bio, research_interests, auth_methods, first_name, last_name, password_set}`; values as set up; `sorted(research_interests) == ["biology","zoology"]` (order is not specified by the model, so the test sorts) |
 | user without interests | new user | `research_interests == []` |
 
-### B4. Error-response convention: fix, plus optional redesign E1
+### B4. Error-response convention: fix, plus approved redesign E1
 **What is wrong**
 - Three body shapes: `{"error": "..."}` (the de facto convention in `authentication`, `livestream` and `papers` views, and the only one the frontend reads: `data.error` in `authStore.ts:254,322,405-434,506,595`), DRF's `{"detail": "..."}` for authentication and permission failures, and ad hoc `{"message": ...}` / `{"warning": ...}` (`views.py:34,165`).
 - Every view wraps its body in `try/except Exception` and returns `500 {"error": str(e)}` (`views.py:39-41,96-98,142-144,169-171,194-195,250-252,260-261,279-280`). That leaks internals (probe: `NOT NULL constraint failed: authentication_user.username`) and turns client mistakes (missing header, bad token) into 500.
@@ -105,7 +105,7 @@ Everything else is a fix. Only E1 and P1 are redesigns and both are optional.
 
 **Fix**: the convention is `{"error": "<message>"}`, with these statuses: 400 validation, 401 authentication, 403 forbidden, 404 not found, 409 conflict. Auth views drop blanket try/except; expected failures are raised as DRF exceptions (`ValidationError`, `AuthenticationFailed`, `NotFound`) or serializer errors; real bugs surface as 500 and are logged by Django.
 
-**E1, redesign (optional, Question 3)**: one `REST_FRAMEWORK['EXCEPTION_HANDLER']` that renders every DRF-raised error as `{"error": message}`, so the 401/403/404/400 produced by DRF itself match. One settings key (code, not env). It changes the body of those errors in all apps. I grepped: nothing in the frontend or tests reads `detail` (`room/[roomId]/page.tsx:998` reads `err.cause.details`, a LiveKit field). Without E1 the convention applies only to auth views and DRF's own 401/403 keep `detail`. Recommended: yes.
+**E1, redesign (approved, decision 3)**: one `REST_FRAMEWORK['EXCEPTION_HANDLER']` that renders every DRF-raised error as `{"error": message}`, so the 401/403/404/400 produced by DRF itself match. One settings key (code, not env). It changes the body of those errors in all apps. I grepped: nothing in the frontend or tests reads `detail` (`room/[roomId]/page.tsx:998` reads `err.cause.details`, a LiveKit field). E1 is approved, so the convention applies to every app.
 
 Unhandled non-DRF exceptions render Django's HTML 500 page, which is why F2's client must not assume JSON on error.
 
@@ -177,7 +177,7 @@ Mutants: M13 `'EMAIL' not in` inverted; M14 `password_set` never set; M15 empty 
 
 Mutants: M16 `AllowAny` restored; M17 lookup by body email; M18 blank-password check removed.
 
-**P1, redesign (not recommended, Question 6)**: the Django-side password is used by nothing in the product (login is Firebase; Django passwords only matter for `/admin/` and DRF `SessionAuthentication`). Mirroring means the plaintext password is POSTed to our server at signup (`authStore.ts:313-317`), set-password (`:587-590`) and reset (`ResetPassword:81-84`), and three endpoints exist to keep two copies in sync (the failure case "reset in Firebase succeeded but sync failed" is a real state in `ResetPassword:131-134`). Dropping it removes the plaintext transfer and `sync_reset_password` altogether, but changes the data model use of `password_set` and what "set password" means for the admin account, so it needs your decision. I recommend the fix above and leaving P1 for after the demo.
+**P1, redesign (declined, decision 6; moved to `docs/future-todos.md`)**: the Django-side password is used by nothing in the product (login is Firebase; Django passwords only matter for `/admin/` and DRF `SessionAuthentication`). Mirroring means the plaintext password is POSTed to our server at signup (`authStore.ts:313-317`), set-password (`:587-590`) and reset (`ResetPassword:81-84`), and three endpoints exist to keep two copies in sync (the failure case "reset in Firebase succeeded but sync failed" is a real state in `ResetPassword:131-134`). Dropping it removes the plaintext transfer and `sync_reset_password` altogether, but changes the data model use of `password_set` and what "set password" means for the admin account, so it needs your decision. The fix above is what ships.
 
 ### B8. `update_profile`: fix
 **What is wrong** (`views.py:197-252`): no validation (`institution` max 100, `first_name` max 150, interest name max 100: SQLite does not enforce lengths, Postgres raises `DataError` -> 500); interests: `ResearchInterest.objects.get_or_create(name=...)` with `None` raises `IntegrityError`, ints are coerced to strings, blank and whitespace-only names are created; `user.save()` then `clear()` then `add()` is not atomic (an error midway leaves the user with no interests); a non-list `research_interests` is silently ignored (`:223`) and a string would iterate characters if the guard were lost; two nested `try/except` returning `str(e)`.
@@ -210,7 +210,7 @@ Mutants: M19 `.clear()` removed; M20 `user.save()` removed; M21 list guard remov
 ### B9. Research interests served by one view: fix
 **What is wrong**: two views for the same data. `authentication/views.py:254-261` at `/api/research-interests` (default `IsAuthenticated`) and `livestream/views.py:672-680` at `/api/livestream/research-interests` and `.../research-interests/` (`AllowAny`, local import inside the function; `livestream/urls.py:20-21`). **Real bug**: the profile page loads suggestions through `authStore.fetchResearchInterests` (`authStore.ts:673-684`), which fetches `/api/research-interests` with **no Authorization header**, so the backend answers 401 and the function returns `[]`. Probe: `GET /api/research-interests` without token -> 401. The profile dropdown (`profile/page.tsx:47`) therefore never offers existing interests; the rooms page works only because it uses the livestream copy (`livestreamStore.ts:478`). `authStore.ts:86` also defines an unused `RESEARCH_INTERESTS` constant, and the call is a relative URL that works only through the `next.config.js` rewrite.
 
-**Fix** (Question 5): keep the `authentication` view, since that app owns `ResearchInterest`; make it public (names carry no user data, and both callers need to work before/without a token); delete the livestream view and its two routes; the single frontend function calls it through the F2 client; `livestreamStore.fetchResearchInterests` delegates to it. This is a small touch in `livestream/views.py`, `livestream/urls.py` and `livestreamStore.ts` (phase 7 files), limited to removing the duplicate. Phase 7 owns the rest (the interest `get_or_create` loops at `livestream/views.py:241-244,294-297` stay for phase 7).
+**Fix** (decision 5): keep the `authentication` view, since that app owns `ResearchInterest`; make it public (names carry no user data, and both callers need to work before/without a token); delete the livestream view and its two routes; the single frontend function calls it through the F2 client; `livestreamStore.fetchResearchInterests` delegates to it. This is a small touch in `livestream/views.py`, `livestream/urls.py` and `livestreamStore.ts` (phase 7 files), limited to removing the duplicate. Phase 7 owns the rest (the interest `get_or_create` loops at `livestream/views.py:241-244,294-297` stay for phase 7).
 
 | Test | Setup | Expected |
 |---|---|---|
@@ -226,7 +226,7 @@ Mutants: M25 `order_by('name')` dropped; M26 `IsAuthenticated` restored; M27 ret
 
 **Fix**: module `logger = logging.getLogger(__name__)`; WARNING for transient retry lines (`services.py:24,29`), ERROR with `exc_info` for the two swallowed enrichment exceptions (`:76,135`), WARNING in `authentication.py` (and ERROR for Firebase not initialised), `logging.getLogger(__name__).warning(...)` in `settings.py` (a `logger` cannot be configured yet at settings import, but the default handler prints it). **No `LOGGING` dict**: it would be a new config option and the default output is sufficient. Messages must not include tokens or the Authorization header (already removed in phase 1).
 
-Papers: this is a four-line swap in phase 5's file, mechanical only, no logic; flagged so phase 5 rebases onto it. Question 9.
+Papers: this is a four-line swap in phase 5's file, mechanical only, no logic; flagged so phase 5 rebases onto it. Approved (decision 9).
 
 | Test | Trigger | Expected |
 |---|---|---|
@@ -245,14 +245,14 @@ Mutants: M28 `print` restored in `authentication.py`; M29 `print` restored in `f
 
 ## 4. Frontend
 
-There is no frontend test runner (phase 3 parking lot, "revisit if phase 4 wants frontend logic tests"). Checks available now: `npm run lint` (ratchet), `npm run typecheck`, `npm run build`. See Question 2 for an optional dependency-free runner.
+There is no frontend test runner (phase 3 parking lot, "revisit if phase 4 wants frontend logic tests"). Checks available now: `npm run lint` (ratchet), `npm run typecheck`, `npm run build`. Decision 2 approves Node's built-in `node --test` for the logic modules (section 6).
 
 ### F1. One config module: fix
 **What is wrong**: `process.env.NEXT_PUBLIC_API_BASE_URL` is read 11 times in 6 files: `authStore.ts:79`, `ResetPassword/page.tsx:8`, `livestreamStore.ts:96`, `extracts/page.tsx:39,83`, `paperStore.ts:151,180,297,341,392`, `api/token/route.ts:21`; Firebase keys in `lib/firebase.ts:8-13`; LiveKit URL in `room/[roomId]/page.tsx:1264`. If the variable is unset every URL silently becomes `undefined/api/...`.
 
 **Change**: `src/lib/config.ts` exporting `API_BASE_URL`, the Firebase config and `LIVEKIT_URL`. Next.js inlines only literal `process.env.NEXT_PUBLIC_X` reads, so each is a literal access; trailing slash trimmed; a missing variable throws an error that names it. `.env.example` already lists all of them (no new variable). `lib/firebase.ts` reads from the config module.
 
-Behaviors to pin (only if Question 2 is approved; otherwise typecheck, build and manual):
+Behaviors to pin with `node --test` (`frontend/tests/config.test.ts`; `config.ts` exposes a pure `readConfig(env)` that takes the env object, so the test needs no `process.env` mutation, and a thin module-level export with the literal `process.env.NEXT_PUBLIC_*` reads):
 | Test | Input | Expected |
 |---|---|---|
 | trailing slash | `http://localhost:8000/` | `http://localhost:8000` |
@@ -266,9 +266,9 @@ Behaviors to pin (only if Question 2 is approved; otherwise typecheck, build and
 - `apiRequest<T>(path, { method, body, auth })`: absolute URL from config; JSON `Content-Type` and body when a body is given; `Authorization: Bearer <id token>` where the token comes from `auth.currentUser.getIdToken()` at request time (the Firebase SDK refreshes it when close to expiry), not from the persisted store copy; on non-2xx throws `ApiError(status, message)` with `message = body.error ?? body.detail ?? "Request failed (HTTP <status>)"`, tolerating non-JSON bodies; network failure -> `ApiError(0, "Cannot reach the server")`.
 - Typed functions in `src/lib/api/auth.ts`: `register`, `getProfile`, `updateProfile`, `setPassword`, `syncResetPassword`, `getResearchInterests`, with response types from F4.
 - `ResetPassword/page.tsx` uses it and stops sending `email` (B7).
-- Scope: Question 1.
+- Scope (decision 1): auth/profile call sites only; other stores migrate in phases 5-7.
 
-Behaviors to pin (with Question 2; otherwise manual): 
+Behaviors to pin with `node --test` (`frontend/tests/apiClient.test.ts`; `apiRequest` takes `{ baseUrl, getToken, fetchImpl }` as a factory argument, so the test injects a fake `fetch` and needs no Firebase): 
 | Test | Fake `fetch` returns | Expected |
 |---|---|---|
 | attaches token | token getter -> `"abc"` | request header `Authorization: Bearer abc`; no header when the getter returns null |
@@ -284,11 +284,11 @@ Hand mutants for the report (the Python runner cannot run frontend mutants): dro
 ### F3. `authStore` cleanup: fix
 Items, in order of impact:
 1. **Retry uses the rejected token** (`:375-435`): `currentToken = token` (the persisted copy, `:379-380`) is refreshed only when it is empty or the error mentions "Token used too early" (`:382`). On a 401 the loop waits 1 s and retries with the same token (`:408-412`), then signs the user out with "authenticated with Firebase but not registered" (`:415-431`). The store persists `token`, `isAuthenticated` and `user` in localStorage (`:689-693`), so after the one-hour ID token lifetime a reload can hit three 401s and force a logout of a valid Firebase session. The F2 client fetches a fresh token per request, which removes the cause; the retry then only needs to cover the backend-sync race right after signup.
-2. **Clock-skew hacks**: `getAuthToken` retry (`:23-33`), checks at `:382,455`, a module-level `setInterval` every 2 s (`:706-711`) and `setTimeout` at import (`:699-704`) exist because the backend verifies with zero skew (`verify_id_token(..., clock_skew_seconds=0)`, signature checked in firebase_admin 6.7). With `clock_skew_seconds=60` in the backend helper (Question 7) the frontend workarounds can be deleted; without it they stay.
+2. **Clock-skew hacks**: `getAuthToken` retry (`:23-33`), checks at `:382,455`, a module-level `setInterval` every 2 s (`:706-711`) and `setTimeout` at import (`:699-704`) exist because the backend verifies with zero skew (`verify_id_token(..., clock_skew_seconds=0)`, signature checked in firebase_admin 6.7). With `clock_skew_seconds=60` in the backend helper (approved, decision 7) the frontend workarounds are deleted.
 3. **Typing**: 15 `any` (all `catch (error: any)`) and 3 `@ts-ignore` (`:662-668`, `window._authUnsubscribe`). Use `unknown` plus a `getErrorMessage` helper and a Firebase error code check; keep the unsubscribe handle in a module variable.
 4. **Dead code**: `AUTH_ENDPOINTS.VERIFY_TOKEN` (wrong path) and `RESEARCH_INTERESTS` (`:81,86`); the unused `provider` local (`:439-442`) and `User.provider` (`:43`) that the backend never returns.
 5. **Duplicated flow**: `login` (`:102-155`) and `googleLogin` (`:158-216`) share the same fetch-profile / sign-out-on-failure block; `login`, `register`, `registerGoogleUser` repeat the same error reset block. Extract the shared step; no behavior change.
-6. `register` (`:294-354`): if the backend call fails after `createUserWithEmailAndPassword`, the Firebase account stays (and `signOut(auth)` is not awaited, `:340`). The next login then ends in "not registered" (`:421`) and signup says email already in use: the user is stuck. Fix: on backend failure delete the new Firebase user (`userCredential.user.delete()`), then sign out. Question 8; needs the Firebase check.
+6. `register` (`:294-354`): if the backend call fails after `createUserWithEmailAndPassword`, the Firebase account stays (and `signOut(auth)` is not awaited, `:340`). The next login then ends in "not registered" (`:421`) and signup says email already in use: the user is stuck. Fix (approved, decision 8): on backend failure delete the new Firebase user (`userCredential.user.delete()`), then sign out. Needs the Firebase check.
 7. `syncAuthState` (`:632-670`) sets `isAuthenticated: true` before the profile has loaded (`:641`), so the UI can show a signed-in state the backend would reject; it is also called at import and by `app/page.tsx:16` (the previous listener is replaced, so no leak). Only set it after `fetchProfile` succeeds.
 8. `updateProfile` already refetches the profile (`:510`) and the profile page does it again (`profile/page.tsx:98-100`), and loads the interests twice (`:27-29,33-43`). Remove the duplicates.
 9. The persisted `token` stays for now: `paperStore.ts:132,175,282,332,385` and `livestreamStore.ts:251,349,448,543` read it. Removing it is parked until those phases use the client.
@@ -312,23 +312,29 @@ Pin: no frontend runner. Verification is typecheck + build + lint ratchet lowere
 ## 5. Noted, not mine (parking lot candidates)
 - **Phase 7**: `livestream/views.py:241-244,294-297` duplicate the interest `get_or_create` loops; local imports of `ResearchInterest` at `:241,294,676`.
 - **Phase 7 or after**: remove the persisted `token` from `authStore` once papers, extracts and rooms use the client; `api/token/route.ts` should use the config module and the client.
-- **Phase 5/6/7**: convert their `fetch` calls to the client (Question 1); `paperStore.ts:392` known bug stays with phase 6.
+- **Phase 5/6/7**: convert their `fetch` calls to the client (decision 1); `paperStore.ts:392` known bug stays with phase 6.
 - **Phase 12**: `settings.py:158-171` is overwritten by `:213-223` (validators disabled "for testing DELETE WHEN DONE"); `STATIC_URL` defined twice (`:67`, `:189`); `DEBUG=True`; `next.config.js` rewrites hard-code `localhost:8000` (the relative `/api/...` fetches I remove were the only ones depending on it).
 
 ## 6. Test and mutant plan
 
 **Files** (new, `backend/authentication/`, discovered by the `test*.py` pattern; no `tests/` package, which would shadow the Selenium `tests.py`): `test_firebase_auth.py`, `test_register.py`, `test_profile.py`, `test_password.py`, `test_research_interests.py`, `test_logging.py`; the `papers.services` logging tests go in `papers/tests/test_enrichment.py` style (new `papers/tests/test_logging.py`). Test utility: `testsupport/auth.py` `fake_firebase` accepts a claims dict per token (backward compatible); it raises `ValueError` today, tests also need `auth.ExpiredIdTokenError` and `auth.CertificateFetchError`. Test fixtures use `django.test.TestCase` and DRF `APIClient`; no network.
 
-**Mutants** live in `backend/mutations/phase4/` (the existing phases keep theirs in `backend/mutations/phase3/`; the runner globs `mutations/*/*.patch`), named `Mxx-slug.patch`, one-line production bugs, created with `git diff -- <file> > ...; git checkout -- <file>`, never touching tests, `testsupport/`, `scripts/` or `mutations/`. Planned IDs: M01-M03 and M32-M33 (B1), M04-M05 and M34 (B3), M30-M31 (B4), M06-M12 and M35-M36 (B5), M13-M15 and M37 (B6), M16-M18 (B7), M19-M24 (B8), M25-M27 (B9), M28-M29 (B10). 37 total; each is listed with its issue above, and each must be killed by a named test. IDs are only labels; real file names get their slug when written.
+**Mutants** live in `backend/mutations/phase4/` (the existing phases keep theirs in `backend/mutations/phase3/`; the runner globs `mutations/*/*.patch`), named `Mxx-slug.patch`, one-line production bugs, created with `git diff -- <file> > ...; git checkout -- <file>`, never touching tests, `testsupport/`, `scripts/` or `mutations/`. Planned IDs: M01-M03 and M32-M33 (B1), M04-M05 and M34 (B3), M30-M31 (B4), M06-M12 and M35-M36 (B5), M13-M15 and M37 (B6), M16-M18 (B7), M19-M24 (B8), M25-M27 (B9), M28-M29 (B10). 38 total (M38 is the clock-skew argument, below); each is listed with its issue above, and each must be killed by a named test. IDs are only labels; real file names get their slug when written.
+
+**Frontend tests** (decision 2): `frontend/tests/*.test.ts`, run by one new script `"test": "node --experimental-strip-types --test tests/"` in `frontend/package.json` (Node 22 here; no new package, `@types/node` is already installed so `tsc --noEmit` covers the tests). Constraint to verify when implementing: with type stripping, relative imports in these files need an explicit `.ts` extension, which `tsc` rejects without `allowImportingTsExtensions: true` (safe with `noEmit`, one tsconfig line). If that proves unacceptable, the modules under test stay free of relative imports instead. Tests are written first and watched failing, like the backend ones. The tables in F1 and F2 are the cases. Added cases: `readConfig` returns every Firebase key unchanged; `apiRequest` with a relative path lacking a leading slash still joins with exactly one `/`; query strings are kept. Hand mutants (the Python runner cannot apply them), each run once by hand and reverted, results in the phase report: F1 trailing slash not trimmed; F1 missing variable returns `undefined`; F2 `Authorization` header dropped; F2 non-OK swallowed (resolves); F2 `detail` preferred over `error`; F2 HTML body throws `SyntaxError` instead of `ApiError`; F2 network failure status 1 instead of 0.
+
+**Backend token verification** (decision 7), red first in `test_firebase_auth.py`: the fake `verify_id_token` records its keyword arguments; a request must call it with `clock_skew_seconds=60` (the contract with the Firebase SDK, signature checked in firebase_admin 6.7). Mutant M38: argument dropped (zero skew). Total mutants: 38.
+
+**Backend additions from the decisions**: B4 gets the E1 handler tests (its rows already assume E1; mutant M30 is the handler rendering `detail`); B2 has no tests (deleted routes); B9 test "old livestream route" is not written (removed names are not asserted); `papers/tests/test_logging.py` as in B10.
 
 **Order of work** (separate commits, per the method):
 1. Test utility extension, characterization tests (the "pin first" rows), and mutants for the current code. All green on unchanged code; run the mutation runner: every mutant killed.
 2. Refactors that keep behavior (helper, serializers, logging swap, remove dead blocks and the confirmed dead endpoints, merge the interest views). Mutants that go stale are re-created in the new code under the same name, never deleted.
 3. Behavior fixes, one concern per commit, each starting with its "red first" test watched failing for the stated reason: 401/400 instead of 500 in `register`; `sync_reset_password` authentication; `update_profile` validation and atomicity; public research interests; error body convention; invalid-token messages.
-4. Frontend: config, client, types, `authStore`, `ResetPassword`, `LoginForm`, profile page; lint baseline lowered.
-5. Verify: `python manage.py test` (also `--shuffle 1`), `makemigrations --check --dry-run`, `python scripts/mutation_check.py`, `npm run lint`, `npm run typecheck`, `npm run build` (placeholder `NEXT_PUBLIC_*`), report.
+4. Frontend (tests first for `config.ts` and `apiClient.ts`): config, client, types, `authStore`, `ResetPassword`, `LoginForm`, profile page; lint baseline lowered.
+5. Verify: `python manage.py test` (also `--shuffle 1`), `makemigrations --check --dry-run`, `python scripts/mutation_check.py`, `npm run lint`, `npm run typecheck`, `npm run test`, `npm run build` (placeholder `NEXT_PUBLIC_*`), report.
 
-**Done when** (roadmap): auth helper, serializers, logger-only logging and a single interests view in place; typed client and one config module used by the auth/profile code (scope per Question 1); phase 4 files free of `any`; migration decision recorded (B11); all checks above pass; user click-through of section 7.
+**Done when** (roadmap): auth helper, serializers, logger-only logging and a single interests view in place; typed client and one config module used by the auth/profile code (scope per decision 1); phase 4 files free of `any`; migration decision recorded (B11); all checks above pass; user click-through of section 7.
 
 ## 7. Checks that need your credentials (Firebase) and a running stack
 
@@ -345,19 +351,21 @@ Run before the phase (baseline, for comparison) and after:
 8. **Forgot / reset**: `/ForgotPassword`; in Firebase console -> Authentication -> Templates -> Password reset -> customize action URL to `http://localhost:3000/ResetPassword` (otherwise the link opens Firebase's own page and the app's reset code never runs); click the emailed link; set a new password; expect success and redirect; log in with the new password; shell `check_password(new)` True.
 9. **Sync-reset hole** (after phase 4 only): `curl -i -X POST localhost:8000/api/sync-reset-password -H 'Content-Type: application/json' -d '{"email":"phase4a@example.com","password":"x-hack-1"}'`. Before: 200 and the password changed. After: 401, shell shows the password unchanged.
 10. **Postgres migration and collation** (not credentials, needs a local PostgreSQL 16): empty database, `DATABASE_SERVICE_NAME`, `DATABASE_NAME`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_PORT` set, `python manage.py migrate` completes (covers 0007 -> 0008); `GET /api/research-interests` with interests `Zoology`, `biology` is ordered by the database collation (documented, not asserted).
-11. **Orphan check** (if Question 8 is approved): temporarily stop the backend, sign up in the UI, expect an error; restart the backend and sign up again with the same email -> must succeed (before: "email-already-in-use"). Then the Firebase console must show one user.
-12. **Clock skew** (only if Question 7 is approved): with the machine clock set 30 s behind, log in; before: occasional "Token used too early"; after: no error. Restore the clock.
+11. **Orphan check** (decision 8): temporarily stop the backend, sign up in the UI, expect an error; restart the backend and sign up again with the same email -> must succeed (before: "email-already-in-use"). Then the Firebase console must show one user.
+12. **Clock skew** (decision 7): with the machine clock set 30 s behind, log in; before: occasional "Token used too early"; after: no error. Restore the clock.
 
 The optional Selenium suite (`RUN_SELENIUM=1`, frontend on 4000) is unaffected by this phase's backend routes and is not part of the Definition of done.
 
-## 8. Questions for you
+## 8. Decisions (approved)
 
-1. **Frontend call-site scope.** Build `config.ts` and `apiClient.ts` and convert only the auth/profile code now (authStore, ResetPassword, firebase.ts, LoginForm/profile page), leaving paper, extract and room fetches for phases 5-7 (recommended, keeps phases separate), or convert every call site now (touches `paperStore`, `livestreamStore`, `extracts/page`, `api/token/route`)?
-2. **Frontend tests.** Allow a dependency-free test run for `config.ts` and `apiClient.ts` using Node's built-in `node --test` (Node 22 here) with one `npm run test` script? That is tooling, so it needs your OK. If no, F1/F2 rely on typecheck, build and the manual checks.
-3. **E1**: global `EXCEPTION_HANDLER` so all DRF errors are `{"error": ...}` in every app (recommended), or auth views only?
-4. **Dead endpoints**: delete `verify_token` and `check_user` plus the duplicate route (recommended), or keep and pin them?
-5. **Research interests**: one public `GET /api/research-interests` in `authentication`, remove the livestream copy and its two routes (recommended), or keep it authenticated (then rooms and profile must send the token)?
-6. **Password mirroring**: keep it and fix `sync_reset_password` (recommended), or approve redesign P1?
-7. **Clock skew**: add `clock_skew_seconds=60` to token verification and delete the frontend "Token used too early" workarounds (recommended; slightly relaxes the `iat` check), or keep both as they are?
-8. **Failed signup cleanup**: delete the newly created Firebase user when the backend registration fails (recommended)?
-9. **`papers/services.py`**: OK to swap its four `print` calls to a logger in this phase (mechanical, no logic)?
+Approved by the user after reading this analysis. Implementation has not started.
+
+1. **Frontend scope**: convert only the auth/profile call sites in phase 4 (`authStore`, `ResetPassword`, `firebase.ts`, `LoginForm`, profile page). Paper, extract and room fetches stay on raw `fetch` until phases 5-7 (parking lot in section 5).
+2. **Frontend tests**: approved. `node --test` (Node's built-in runner) with one `npm run test` script and no new package, for `config.ts` and `apiClient.ts` (section 6, "Frontend tests").
+3. **E1 approved**: global `REST_FRAMEWORK['EXCEPTION_HANDLER']` rendering every DRF-raised error as `{"error": message}` in all apps.
+4. **Dead endpoints**: delete `verify_token`, `check_user` and the duplicate `check-user` route (B2).
+5. **Research interests**: one public `GET /api/research-interests` in `authentication`; remove the livestream view and its two routes. It stays public for now; "make research interests authenticated" is recorded in `docs/future-todos.md`.
+6. **Passwords**: keep the mirroring and fix `sync_reset_password` (B7). **P1 declined**; recorded in `docs/future-todos.md` as a post-demo option.
+7. **Clock skew**: `clock_skew_seconds=60` in the backend token verification, and the frontend "Token used too early" workarounds (F3.2) are deleted.
+8. **Failed signup**: delete the newly created Firebase user when backend registration fails (F3.6).
+9. **`papers/services.py`**: the four `print` calls become a logger, with the logger definition. This is an approved exception to the phase scope; the roadmap's mention of `papers/views.py` is outdated (it has no prints).
