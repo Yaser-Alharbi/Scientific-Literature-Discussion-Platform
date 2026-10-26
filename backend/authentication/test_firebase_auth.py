@@ -40,3 +40,9 @@ class FirebaseAuthenticationTests(FirebaseApiCase):
         response = self.call('get', '/api/user-profile', 'tok-gina')
         self.assertEqual(response.status_code, 401)
         self.assertEqual(User.objects.count(), 2)
+
+    def test_token_scheme_header_is_401_not_a_crash(self):
+        # catches: TokenAuthentication in the defaults without rest_framework.authtoken installed,
+        # which raised AttributeError for any "Authorization: Token ..." header
+        response = self.client.get('/api/user-profile', HTTP_AUTHORIZATION='Token abc')
+        self.assertEqual(response.status_code, 401)

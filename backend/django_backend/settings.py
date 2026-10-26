@@ -245,7 +245,6 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'authentication.authentication.FirebaseAuthentication',
         'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
     ],
     'EXCEPTION_HANDLER': 'django_backend.api_errors.api_exception_handler',
     'DEFAULT_PERMISSION_CLASSES': [
