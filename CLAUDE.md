@@ -43,10 +43,9 @@ Fix and clean up first; redesign a piece only when clearly better and approved b
 Stop and ask if scope is unclear, a fix needs out-of-scope changes, or a failure can't be explained.
 
 ## Definition of done
-- Frontend: `npm run lint` · `npm run build` (lint is separate: `ignoreDuringBuilds` is on)
-- Backend: `python manage.py test`
-- Lint/typecheck/test tooling that doesn't exist yet is added in the tooling phase, not ad hoc.
-- Selenium tests in `authentication/tests.py` need the frontend on `localhost:4000` and a browser driver; skip them unless the task is about auth flows.
+- Frontend (`frontend/`): `npm run lint` (baseline ratchet, inline disables ignored) · `npm run typecheck` · `npm run build` (needs the `NEXT_PUBLIC_*` variables from `.env.example`; placeholders are enough)
+- Backend (`backend/`, Python 3.12): `python manage.py test` (network blocked; Selenium suite runs only with `RUN_SELENIUM=1`) · `python manage.py makemigrations --check --dry-run`
+- When changing tested production code: `python scripts/mutation_check.py mutations/<phase>` must report no stale or invalid patches. A changed behavior starts with a failing test.
 All available checks must pass and actually be run.
 
 ## Architecture
