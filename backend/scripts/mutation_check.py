@@ -1,7 +1,10 @@
 # backend/scripts/mutation_check.py
-"""Apply each patch in a directory to production code and require the test suite to fail.
+"""Apply each mutation patch to production code and require the test suite to fail.
 
-Usage (from backend/): python scripts/mutation_check.py mutations/phase3
+Usage (from backend/): python scripts/mutation_check.py
+
+Runs every patch under mutations/, from all phases: a change in one phase can stop an
+earlier phase's tests from catching their bugs.
 
 A mutant is killed only when the suite fails and still runs the same number of tests as the
 unmutated run. A patch that does not apply is stale and one that breaks compilation or
@@ -77,13 +80,12 @@ def check_one(root, patch):
 
 def main():
     global EXPECTED_RAN
-    patch_dir = (BACKEND / sys.argv[1]).resolve()
     root = repo_root()
     if tracked_changes(root):
         sys.exit('refusing to run: tracked files are modified')
-    patches = sorted(patch_dir.glob('*.patch'))
+    patches = sorted((BACKEND / 'mutations').glob('*/*.patch'))
     if not patches:
-        sys.exit(f'no patches in {patch_dir}')
+        sys.exit('no patches under mutations/')
 
     code, EXPECTED_RAN, failure = run_suite()
     if code != 0:
@@ -93,8 +95,9 @@ def main():
     rows = []
     for patch in patches:
         status, detail = check_one(root, patch)
-        rows.append((patch.name, status, detail))
-        print(f'{patch.name:55} {status:9} {detail}', flush=True)
+        name = f'{patch.parent.name}/{patch.name}'
+        rows.append((name, status, detail))
+        print(f'{name:62} {status:9} {detail}', flush=True)
 
     counts = {s: sum(1 for r in rows if r[1] == s) for s in ('killed', 'SURVIVED', 'stale', 'invalid', 'rejected')}
     print(f'\n{counts["killed"]}/{len(rows)} killed, {counts["SURVIVED"]} survived, '

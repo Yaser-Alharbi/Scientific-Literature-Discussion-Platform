@@ -41,7 +41,7 @@ Backend (Python 3.12; 3.11 also works; 3.13 does not, see the parking lot), from
 - `python manage.py test` runs the browserless suite on SQLite. It needs no `.env` and no `SECRET_KEY`; the runner supplies a test-only key. The Selenium class in `authentication/tests.py` is skipped unless `RUN_SELENIUM=1` (it also needs the frontend on `localhost:4000` and Chrome).
 - `python manage.py test --shuffle 1` (any seed) must also pass: tests may not depend on each other or on a warm cache.
 - `python manage.py makemigrations --check --dry-run` must report no changes.
-- `python scripts/mutation_check.py mutations/phase3` must report every patch killed.
+- `python scripts/mutation_check.py` must report every patch killed. It runs the patches of every phase, not just the current one.
 
 Frontend, from `frontend/` after `npm ci`:
 - `npm run lint` is a ratchet: it fails on any finding beyond `lint-baseline.json` (keyed by file and rule) and ignores `eslint-disable` comments. `npm run lint:full` prints the raw report. After fixing findings, `node scripts/lint-baseline.mjs --update` lowers the baseline; it refuses to raise it.
@@ -54,6 +54,7 @@ Frontend, from `frontend/` after `npm ci`:
 ### The mutation runner
 `mutations/<phase>/*.patch` are one-line production-code bugs written before the tests that must catch them. The runner applies each one in turn, runs the suite and reverts it. A mutant counts as killed only if the suite fails and still runs the same number of tests. A patch that no longer applies is stale; one that does not compile or fails `manage.py check` is invalid; neither counts as a kill, and either fails the run.
 - To add a mutant, make the edit in the work tree, run `git diff -- <file> > mutations/<phase>/Mxx-<slug>.patch`, then `git checkout -- <file>`. Never write a patch by hand. Patches may not touch tests, `testsupport/`, `scripts/` or `mutations/`.
+- A patch that goes stale because a refactor moved or reworded the code around it is re-created: put the same bug into the new code, save it with `git diff` under the same file name, and revert. Never delete it; the behavior still needs protecting.
 - A phase that deliberately changes tested behavior first flips the relevant `test_known_bug_*` test, then retires the patches that no longer apply: delete the patch in the same commit and give the reason in the commit message and the phase report. Never edit a patch to make it apply without re-checking that it is still a real bug.
 - A mutant that turns out to be equivalent (no test can tell it apart) is documented in the phase report, never killed by asserting on internals.
 
