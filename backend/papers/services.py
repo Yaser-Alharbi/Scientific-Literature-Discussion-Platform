@@ -1,8 +1,11 @@
 # backend/papers/services.py
+import logging
 import requests
 from django.conf import settings
 from django.core.cache import cache
 import time
+
+logger = logging.getLogger(__name__)
 
 # marker cached when an api answers that it has no record, so the miss is not looked up again
 NOT_FOUND = '__not_found__'
@@ -21,12 +24,12 @@ def fetch_with_retry(url):
         try:
             response = requests.get(url, timeout=HTTP_TIMEOUT)
         except requests.exceptions.RequestException as e:
-            print(f"Transient error requesting {url}: {e}")
+            logger.warning("Transient error requesting %s: %s", url, e)
         else:
             # 429 and 5xx are transient, everything else is an answer the caller can act on
             if response.status_code != 429 and response.status_code < 500:
                 return response
-            print(f"Transient status {response.status_code} from {url}")
+            logger.warning("Transient status %s from %s", response.status_code, url)
 
         if attempt < HTTP_ATTEMPTS - 1:
             time.sleep(HTTP_RETRY_DELAY)
@@ -72,8 +75,8 @@ def enrich_results_with_doi(results):
                 else:
                     # crossref answered and had no match, so cache the miss
                     cache.set(cache_key, NOT_FOUND, NOT_FOUND_TTL)
-        except Exception as e:
-            print(f"Error enriching result with DOI: {e}")
+        except Exception:
+            logger.exception("Error enriching result with DOI")
             continue
 
 def enrich_results_with_unpaywall(results):
@@ -131,6 +134,6 @@ def enrich_results_with_unpaywall(results):
                 # unpaywall has no record for this doi, so cache the miss
                 cache.set(cache_key, NOT_FOUND, NOT_FOUND_TTL)
                 
-        except Exception as e:
-            print(f"Error fetching Unpaywall data: {e}")
+        except Exception:
+            logger.exception("Error fetching Unpaywall data")
             continue
