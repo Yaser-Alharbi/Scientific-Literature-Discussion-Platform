@@ -1,7 +1,11 @@
+import logging
+
 from rest_framework import authentication
 from rest_framework import exceptions
 from firebase_admin import auth
 from .models import User
+
+logger = logging.getLogger(__name__)
 
 BEARER_PREFIX = 'Bearer '
 # a server clock a few seconds behind Google's would otherwise reject fresh tokens as issued in the future
@@ -21,7 +25,8 @@ def verify_firebase_token(token):
     """
     try:
         return auth.verify_id_token(token, clock_skew_seconds=CLOCK_SKEW_SECONDS)
-    except (ValueError, auth.InvalidIdTokenError):
+    except (ValueError, auth.InvalidIdTokenError) as e:
+        logger.warning('Rejected Firebase token: %s', e)
         raise exceptions.AuthenticationFailed('Invalid or expired Firebase token')
 
 
@@ -39,6 +44,7 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
         try:
             user = User.objects.get(firebase_uid=decoded_token.get('uid'))
         except User.DoesNotExist:
+            logger.warning('Firebase uid %s has no Django user', decoded_token.get('uid'))
             raise exceptions.AuthenticationFailed('User is authenticated with Firebase but not registered')
         return (user, token)
 
