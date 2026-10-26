@@ -1,13 +1,13 @@
 diff --git a/backend/authentication/views.py b/backend/authentication/views.py
-index 43456ca..e1e6c29 100644
+index 2840729..659de02 100644
 --- a/backend/authentication/views.py
 +++ b/backend/authentication/views.py
-@@ -220,7 +220,7 @@ def update_profile(request):
-             
-             user.save()
-             
--            if 'research_interests' in data and isinstance(data.get('research_interests'), list):
-+            if 'research_interests' in data:
-                 # Clear existing interests
-                 user.research_interests.clear()
-                 # Add new interests
+@@ -81,7 +81,7 @@ def set_password(request):
+ @api_view(['POST'])
+ def update_profile(request):
+     # The frontend only ever sends a list; anything else is treated as "interests not part of this update".
+-    payload = {k: v for k, v in request.data.items() if k != 'research_interests' or isinstance(v, list)}
++    payload = {k: v for k, v in request.data.items() if k != 'research_interests' or True}
+     serializer = ProfileUpdateSerializer(data=payload)
+     serializer.is_valid(raise_exception=True)
+     changes = dict(serializer.validated_data)

@@ -1,0 +1,13 @@
+diff --git a/backend/authentication/serializers.py b/backend/authentication/serializers.py
+index 8ebfc57..23b77c6 100644
+--- a/backend/authentication/serializers.py
++++ b/backend/authentication/serializers.py
+@@ -9,7 +9,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
+     class Meta:
+         model = User
+         fields = ['email', 'institution', 'bio', 'research_interests', 'auth_methods',
+-                  'first_name', 'last_name', 'password_set']
++                  'last_name', 'password_set']
+         read_only_fields = fields
+ 
+ 

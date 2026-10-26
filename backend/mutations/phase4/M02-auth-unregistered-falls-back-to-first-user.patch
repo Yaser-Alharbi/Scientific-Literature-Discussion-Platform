@@ -1,13 +1,13 @@
 diff --git a/backend/authentication/authentication.py b/backend/authentication/authentication.py
-index d48cf58..ac6f057 100644
+index 19562fc..2332e58 100644
 --- a/backend/authentication/authentication.py
 +++ b/backend/authentication/authentication.py
-@@ -30,7 +30,7 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
-             try:
-                 user = User.objects.get(firebase_uid=uid)
+@@ -48,7 +48,7 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
+                 user = User.objects.get(firebase_uid=decoded_token.get('uid'))
              except User.DoesNotExist:
--                raise exceptions.AuthenticationFailed('User authenticated with Firebase but not found in Django database')
+                 logger.warning('Firebase uid %s has no Django user', decoded_token.get('uid'))
+-                raise exceptions.AuthenticationFailed('User is authenticated with Firebase but not registered')
 +                user = User.objects.first()
-                 
-             # return authenticated user
-             return (user, token)
+         except exceptions.AuthenticationFailed:
+             # Frontend calls may still carry a stale persisted token; where anonymous access is fine, that must
+             # not turn into a 401. Protected views keep the distinct 401 message.

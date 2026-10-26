@@ -1,13 +1,13 @@
 diff --git a/backend/authentication/authentication.py b/backend/authentication/authentication.py
-index d48cf58..7caac14 100644
+index 19562fc..5057033 100644
 --- a/backend/authentication/authentication.py
 +++ b/backend/authentication/authentication.py
-@@ -28,7 +28,7 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
-             
-             # get or create user
+@@ -45,7 +45,7 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
+         try:
+             decoded_token = verify_firebase_token(token)
              try:
--                user = User.objects.get(firebase_uid=uid)
+-                user = User.objects.get(firebase_uid=decoded_token.get('uid'))
 +                user = User.objects.first()
              except User.DoesNotExist:
-                 raise exceptions.AuthenticationFailed('User authenticated with Firebase but not found in Django database')
-                 
+                 logger.warning('Firebase uid %s has no Django user', decoded_token.get('uid'))
+                 raise exceptions.AuthenticationFailed('User is authenticated with Firebase but not registered')

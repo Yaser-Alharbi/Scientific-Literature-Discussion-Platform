@@ -1,0 +1,13 @@
+diff --git a/backend/authentication/serializers.py b/backend/authentication/serializers.py
+index 8ebfc57..fcd1654 100644
+--- a/backend/authentication/serializers.py
++++ b/backend/authentication/serializers.py
+@@ -17,7 +17,7 @@ class InterestNameField(serializers.CharField):
+     """A research interest name: a non-blank string of at most 100 characters, surrounding whitespace removed."""
+ 
+     def __init__(self, **kwargs):
+-        super().__init__(max_length=100, **kwargs)
++        super().__init__(max_length=100, trim_whitespace=False, **kwargs)
+ 
+     def to_internal_value(self, data):
+         # CharField would silently turn 7 into "7"

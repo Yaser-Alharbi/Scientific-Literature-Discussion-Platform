@@ -1,13 +1,13 @@
 diff --git a/backend/authentication/views.py b/backend/authentication/views.py
-index 43456ca..a3f6719 100644
+index 2840729..4d500c0 100644
 --- a/backend/authentication/views.py
 +++ b/backend/authentication/views.py
-@@ -222,7 +222,7 @@ def update_profile(request):
-             
-             if 'research_interests' in data and isinstance(data.get('research_interests'), list):
-                 # Clear existing interests
--                user.research_interests.clear()
-+                pass
-                 # Add new interests
-                 for interest_name in data.get('research_interests', []):
-                     interest, created = ResearchInterest.objects.get_or_create(name=interest_name)
+@@ -93,7 +93,7 @@ def update_profile(request):
+             setattr(user, field, value)
+         user.save()
+         if interest_names is not None:
+-            user.research_interests.set(
++            user.research_interests.add(
+                 [ResearchInterest.objects.get_or_create(name=name)[0] for name in interest_names]
+             )
+ 

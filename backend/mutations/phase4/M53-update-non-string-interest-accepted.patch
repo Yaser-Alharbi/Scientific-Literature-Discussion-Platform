@@ -1,0 +1,13 @@
+diff --git a/backend/authentication/serializers.py b/backend/authentication/serializers.py
+index 8ebfc57..6cab3cd 100644
+--- a/backend/authentication/serializers.py
++++ b/backend/authentication/serializers.py
+@@ -21,7 +21,7 @@ class InterestNameField(serializers.CharField):
+ 
+     def to_internal_value(self, data):
+         # CharField would silently turn 7 into "7"
+-        if not isinstance(data, str):
++        if False:
+             self.fail('invalid')
+         return super().to_internal_value(data)
+ 

@@ -1,0 +1,13 @@
+diff --git a/backend/papers/services.py b/backend/papers/services.py
+index 2c44298..0a56974 100644
+--- a/backend/papers/services.py
++++ b/backend/papers/services.py
+@@ -76,7 +76,7 @@ def enrich_results_with_doi(results):
+                     # crossref answered and had no match, so cache the miss
+                     cache.set(cache_key, NOT_FOUND, NOT_FOUND_TTL)
+         except Exception:
+-            logger.exception("Error enriching result with DOI")
++            pass
+             continue
+ 
+ def enrich_results_with_unpaywall(results):

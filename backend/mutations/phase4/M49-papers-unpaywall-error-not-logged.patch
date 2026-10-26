@@ -1,0 +1,11 @@
+diff --git a/backend/papers/services.py b/backend/papers/services.py
+index 2c44298..7d196cf 100644
+--- a/backend/papers/services.py
++++ b/backend/papers/services.py
+@@ -135,5 +135,5 @@ def enrich_results_with_unpaywall(results):
+                 cache.set(cache_key, NOT_FOUND, NOT_FOUND_TTL)
+                 
+         except Exception:
+-            logger.exception("Error fetching Unpaywall data")
++            pass
+             continue

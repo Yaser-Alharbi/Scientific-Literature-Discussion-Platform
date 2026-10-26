@@ -1,0 +1,12 @@
+diff --git a/backend/authentication/serializers.py b/backend/authentication/serializers.py
+index 8ebfc57..59a2f23 100644
+--- a/backend/authentication/serializers.py
++++ b/backend/authentication/serializers.py
+@@ -42,6 +42,6 @@ class RegisterSerializer(serializers.Serializer):
+     auth_methods = serializers.CharField(max_length=50, default='email')
+     first_name = serializers.CharField(max_length=150, required=False, allow_blank=True, default='')
+     last_name = serializers.CharField(max_length=150, required=False, allow_blank=True, default='')
+-    institution = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
++    institution = serializers.CharField(required=False, allow_blank=True, default='')
+     bio = serializers.CharField(required=False, allow_blank=True, default='')
+     password = serializers.CharField(required=False, allow_blank=True, default='')

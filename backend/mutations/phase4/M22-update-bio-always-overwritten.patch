@@ -1,13 +1,13 @@
 diff --git a/backend/authentication/views.py b/backend/authentication/views.py
-index 43456ca..15532f1 100644
+index 2840729..458b4aa 100644
 --- a/backend/authentication/views.py
 +++ b/backend/authentication/views.py
-@@ -211,7 +211,7 @@ def update_profile(request):
-             # Update fields
-             if 'institution' in data:
-                 user.institution = data['institution']
--            if 'bio' in data:
-+            if True:
-                 user.bio = data['bio']
-             if 'first_name' in data:
-                 user.first_name = data['first_name']
+@@ -84,7 +84,7 @@ def update_profile(request):
+     payload = {k: v for k, v in request.data.items() if k != 'research_interests' or isinstance(v, list)}
+     serializer = ProfileUpdateSerializer(data=payload)
+     serializer.is_valid(raise_exception=True)
+-    changes = dict(serializer.validated_data)
++    changes = {'bio': request.data.get('bio', ''), **serializer.validated_data}
+     interest_names = changes.pop('research_interests', None)
+ 
+     user = request.user

@@ -1,13 +1,13 @@
 diff --git a/backend/authentication/views.py b/backend/authentication/views.py
-index 43456ca..950e2c0 100644
+index 2840729..88a77f8 100644
 --- a/backend/authentication/views.py
 +++ b/backend/authentication/views.py
-@@ -59,7 +59,7 @@ def register(request):
-         first_name = ''
-         last_name = ''
-         
--        if auth_method == 'google':
-+        if auth_method != 'google':
-             first_name = decoded_token.get('name', '').split(' ')[0] if decoded_token.get('name') else ''
-             last_name_parts = decoded_token.get('name', '').split(' ')[1:] if decoded_token.get('name') else []
-             last_name = ' '.join(last_name_parts)
+@@ -24,7 +24,7 @@ def register(request):
+     serializer.is_valid(raise_exception=True)
+     data = serializer.validated_data
+     auth_method = data['auth_methods'].lower()
+-    is_google = auth_method == 'google'
++    is_google = auth_method != 'google'
+     password = data['password']
+ 
+     if is_google:

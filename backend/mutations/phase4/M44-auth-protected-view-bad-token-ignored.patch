@@ -1,0 +1,13 @@
+diff --git a/backend/authentication/authentication.py b/backend/authentication/authentication.py
+index 19562fc..b8e711a 100644
+--- a/backend/authentication/authentication.py
++++ b/backend/authentication/authentication.py
+@@ -60,7 +60,7 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
+     @staticmethod
+     def _allows_anonymous(request):
+         view = request.parser_context['view']
+-        return any(isinstance(permission, AllowAny) for permission in view.get_permissions())
++        return any(True for permission in view.get_permissions())
+ 
+     def authenticate_header(self, request):
+         return 'Bearer'

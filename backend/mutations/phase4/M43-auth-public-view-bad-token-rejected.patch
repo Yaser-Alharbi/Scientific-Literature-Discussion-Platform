@@ -1,0 +1,13 @@
+diff --git a/backend/authentication/authentication.py b/backend/authentication/authentication.py
+index 19562fc..acf8022 100644
+--- a/backend/authentication/authentication.py
++++ b/backend/authentication/authentication.py
+@@ -52,7 +52,7 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
+         except exceptions.AuthenticationFailed:
+             # Frontend calls may still carry a stale persisted token; where anonymous access is fine, that must
+             # not turn into a 401. Protected views keep the distinct 401 message.
+-            if self._allows_anonymous(request):
++            if False:
+                 return None
+             raise
+         return (user, token)

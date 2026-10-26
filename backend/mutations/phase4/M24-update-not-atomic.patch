@@ -1,0 +1,13 @@
+diff --git a/backend/authentication/views.py b/backend/authentication/views.py
+index 2840729..637fc95 100644
+--- a/backend/authentication/views.py
++++ b/backend/authentication/views.py
+@@ -88,7 +88,7 @@ def update_profile(request):
+     interest_names = changes.pop('research_interests', None)
+ 
+     user = request.user
+-    with transaction.atomic():
++    if True:
+         for field, value in changes.items():
+             setattr(user, field, value)
+         user.save()

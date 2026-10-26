@@ -1,0 +1,13 @@
+diff --git a/backend/authentication/views.py b/backend/authentication/views.py
+index 2840729..69b60b0 100644
+--- a/backend/authentication/views.py
++++ b/backend/authentication/views.py
+@@ -17,7 +17,7 @@ def register(request):
+     if claims is None:
+         raise NotAuthenticated()
+     email = claims.get('email')
+-    if not email:
++    if False:
+         raise ValidationError({'email': 'The Firebase token has no email address.'})
+ 
+     serializer = RegisterSerializer(data=request.data)

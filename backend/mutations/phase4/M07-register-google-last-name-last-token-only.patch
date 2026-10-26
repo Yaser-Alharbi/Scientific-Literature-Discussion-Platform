@@ -1,13 +1,13 @@
 diff --git a/backend/authentication/views.py b/backend/authentication/views.py
-index 43456ca..37136dc 100644
+index 2840729..77f0125 100644
 --- a/backend/authentication/views.py
 +++ b/backend/authentication/views.py
-@@ -61,7 +61,7 @@ def register(request):
-         
-         if auth_method == 'google':
-             first_name = decoded_token.get('name', '').split(' ')[0] if decoded_token.get('name') else ''
--            last_name_parts = decoded_token.get('name', '').split(' ')[1:] if decoded_token.get('name') else []
-+            last_name_parts = decoded_token.get('name', '').split(' ')[-1:] if decoded_token.get('name') else []
-             last_name = ' '.join(last_name_parts)
-         else:
-             # For email users, use data from request
+@@ -29,7 +29,7 @@ def register(request):
+ 
+     if is_google:
+         name_parts = claims.get('name', '').split(' ')
+-        first_name, last_name = name_parts[0], ' '.join(name_parts[1:])
++        first_name, last_name = name_parts[0], name_parts[-1]
+     else:
+         first_name, last_name = data['first_name'], data['last_name']
+ 

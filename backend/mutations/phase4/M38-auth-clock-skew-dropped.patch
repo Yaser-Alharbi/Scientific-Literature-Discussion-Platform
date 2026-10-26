@@ -1,0 +1,13 @@
+diff --git a/backend/authentication/authentication.py b/backend/authentication/authentication.py
+index 19562fc..d2286c6 100644
+--- a/backend/authentication/authentication.py
++++ b/backend/authentication/authentication.py
+@@ -26,7 +26,7 @@ def verify_firebase_token(token):
+     Other errors (Firebase unreachable, certificates not fetchable) are server problems and propagate.
+     """
+     try:
+-        return auth.verify_id_token(token, clock_skew_seconds=CLOCK_SKEW_SECONDS)
++        return auth.verify_id_token(token)
+     except (ValueError, auth.InvalidIdTokenError) as e:
+         logger.warning('Rejected Firebase token: %s', e)
+         raise exceptions.AuthenticationFailed('Invalid or expired Firebase token')

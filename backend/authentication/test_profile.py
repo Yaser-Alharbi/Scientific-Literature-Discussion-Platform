@@ -62,6 +62,12 @@ class UpdateProfileTests(FirebaseApiCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual((user.bio, user.institution, user.first_name, user.last_name), ('new', 'A', 'Al', 'Sm'))
 
+    def test_partial_update_of_institution_leaves_bio_alone(self):
+        # catches: a field missing from the request being overwritten with an empty value
+        self.call('post', '/api/update-profile', 'tok-alice', {'institution': 'MIT'})
+        user = self.refreshed()
+        self.assertEqual((user.institution, user.bio), ('MIT', 'B'))
+
     def test_all_text_fields_are_saved_and_echoed(self):
         # catches: the save dropped, so the response shows values that were never stored
         data = {'institution': 'MIT', 'bio': 'x', 'first_name': 'Alan', 'last_name': 'Turing'}

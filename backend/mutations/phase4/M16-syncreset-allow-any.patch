@@ -1,0 +1,12 @@
+diff --git a/backend/authentication/views.py b/backend/authentication/views.py
+index 2840729..7aa423a 100644
+--- a/backend/authentication/views.py
++++ b/backend/authentication/views.py
+@@ -108,6 +108,7 @@ def get_research_interests(request):
+ 
+ 
+ @api_view(['POST'])
++@permission_classes([AllowAny])
+ def sync_reset_password(request):
+     # The reset page signs in with the new password first, so the caller is always authenticated.
+     password = request.data.get('password')

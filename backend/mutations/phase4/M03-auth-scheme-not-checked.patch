@@ -1,13 +1,13 @@
 diff --git a/backend/authentication/authentication.py b/backend/authentication/authentication.py
-index d48cf58..27a6ad7 100644
+index 19562fc..52bef8b 100644
 --- a/backend/authentication/authentication.py
 +++ b/backend/authentication/authentication.py
-@@ -17,7 +17,7 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
-             
-         # extract token
-         try:
--            token = auth_header.split('Bearer ')[1]
-+            token = auth_header.split(' ')[-1]
-         except IndexError:
-             return None
-             
+@@ -17,7 +17,7 @@ CLOCK_SKEW_SECONDS = 60
+ def bearer_token(request):
+     """The token of an `Authorization: Bearer <token>` header, or None when there is no such header."""
+     header = request.META.get('HTTP_AUTHORIZATION', '')
+-    return header[len(BEARER_PREFIX):] if header.startswith(BEARER_PREFIX) else None
++    return header.split(' ')[-1] if header else None
+ 
+ 
+ def verify_firebase_token(token):

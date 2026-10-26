@@ -1,12 +1,13 @@
 diff --git a/backend/authentication/authentication.py b/backend/authentication/authentication.py
-index d48cf58..4a97e2f 100644
+index 19562fc..755723d 100644
 --- a/backend/authentication/authentication.py
 +++ b/backend/authentication/authentication.py
-@@ -39,4 +39,4 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
-             return None
-     
+@@ -63,7 +63,7 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
+         return any(isinstance(permission, AllowAny) for permission in view.get_permissions())
+ 
      def authenticate_header(self, request):
 -        return 'Bearer'
-\ No newline at end of file
 +        return None
-\ No newline at end of file
+ 
+ 
+ class FirebaseTokenAuthentication(authentication.BaseAuthentication):

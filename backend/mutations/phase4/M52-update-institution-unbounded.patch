@@ -1,0 +1,13 @@
+diff --git a/backend/authentication/serializers.py b/backend/authentication/serializers.py
+index 8ebfc57..3568a56 100644
+--- a/backend/authentication/serializers.py
++++ b/backend/authentication/serializers.py
+@@ -29,7 +29,7 @@ class InterestNameField(serializers.CharField):
+ class ProfileUpdateSerializer(serializers.Serializer):
+     """Fields a user may change; only the ones present in the request are applied."""
+ 
+-    institution = serializers.CharField(max_length=100, required=False, allow_blank=True)
++    institution = serializers.CharField(required=False, allow_blank=True)
+     bio = serializers.CharField(required=False, allow_blank=True)
+     first_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+     last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
