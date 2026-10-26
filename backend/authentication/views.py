@@ -72,129 +72,67 @@ def register(request):
 
 @api_view(['GET'])
 def user_profile(request):
-    try:
-        auth_header = request.headers.get('Authorization', '')
-        if not auth_header:
-            return Response({"error": "No token provided"}, status=401)
-            
-        token = auth_header.split('Bearer ')[1]
-        
-        try:
-            decoded_token = auth.verify_id_token(token)
-        except Exception as token_error:
-            logger.error(f"Token verification failed: {str(token_error)}")
-            return Response({"error": f"Invalid token: {str(token_error)}"}, status=401)
-        
-        try:
-            user = User.objects.get(firebase_uid=decoded_token['uid'])
-            
-            research_interests = list(user.research_interests.values_list('name', flat=True))
-            
-            response_data = {
-                'email': user.email,
-                'institution': getattr(user, 'institution', None),
-                'bio': getattr(user, 'bio', None),
-                'research_interests': research_interests,
-                'auth_methods': getattr(user, 'auth_methods', None),
-                'first_name': getattr(user, 'first_name', None),
-                'last_name': getattr(user, 'last_name', None),
-                'password_set': getattr(user, 'password_set', False)
-            }
-            
-            return Response(response_data)
-            
-        except User.DoesNotExist:
-            logger.warning(f"User not found for firebase_uid: {decoded_token['uid']}")
-            return Response({"error": "User not found"}, status=404)
-        except Exception as user_error:
-            logger.exception(f"Error retrieving user data: {str(user_error)}")
-            return Response({"error": f"User data error: {str(user_error)}"}, status=500)
-            
-    except Exception as e:
-        logger.exception(f"Unhandled exception in user_profile: {str(e)}")
-        return Response({"error": "Internal server error"}, status=500)
-    
+    user = request.user
+    return Response({
+        'email': user.email,
+        'institution': user.institution,
+        'bio': user.bio,
+        'research_interests': list(user.research_interests.values_list('name', flat=True)),
+        'auth_methods': user.auth_methods,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'password_set': user.password_set
+    })
+
 
 @api_view(['POST'])
 def set_password(request):
-    try:
-        token = request.headers['Authorization'].split('Bearer ')[1]
-        decoded_token = auth.verify_id_token(token)
-        
-        user = User.objects.get(firebase_uid=decoded_token['uid'])
-        
-        if request.data.get('password'):
-            user.set_password(request.data['password'])
-            user.save()
-            user.password_set = True
-            if 'EMAIL' not in user.auth_methods:
-                user.auth_methods = user.auth_methods + 'EMAIL'
-            user.save()
-            return Response({"message": "Password updated successfully"})
-        else:
-            return Response({"error": "No password provided"}, status=400)
-    except User.DoesNotExist:
-        return Response({"error": "User not found"}, status=404)
-    except Exception as e:
-        return Response({"error": str(e)}, status=500)
+    password = request.data.get('password')
+    if not password:
+        return Response({"error": "No password provided"}, status=400)
+
+    user = request.user
+    user.set_password(password)
+    user.password_set = True
+    if 'EMAIL' not in user.auth_methods:
+        user.auth_methods = user.auth_methods + 'EMAIL'
+    user.save()
+    return Response({"message": "Password updated successfully"})
+
 
 @api_view(['POST'])
 def update_profile(request):
-    try:
-        auth_header = request.headers.get('Authorization', '')
-        if not auth_header:
-            return Response({"error": "No token provided"}, status=401)
-            
-        token = auth_header.split('Bearer ')[1]
-        decoded_token = auth.verify_id_token(token)
-        
-        try:
-            user = User.objects.get(firebase_uid=decoded_token['uid'])
-            data = request.data
-            
-            # Update fields
-            if 'institution' in data:
-                user.institution = data['institution']
-            if 'bio' in data:
-                user.bio = data['bio']
-            if 'first_name' in data:
-                user.first_name = data['first_name']
-            if 'last_name' in data:
-                user.last_name = data['last_name']
-            
-            user.save()
-            
-            if 'research_interests' in data and isinstance(data.get('research_interests'), list):
-                # Clear existing interests
-                user.research_interests.clear()
-                # Add new interests
-                for interest_name in data.get('research_interests', []):
-                    interest, created = ResearchInterest.objects.get_or_create(name=interest_name)
-                    # just the interest object, not the tuple from get_or_create
-                    user.research_interests.add(interest)
-            
-            research_interests = list(user.research_interests.values_list('name', flat=True))
-            
-            return Response({
-                'email': user.email,
-                'institution': user.institution,
-                'bio': user.bio,
-                'research_interests': research_interests,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-                'password_set': user.password_set
-            })
-            
-        except User.DoesNotExist:
-            return Response({"error": "User not found"}, status=404)
-        except Exception as inner_error:
-            logger.exception("Inner profile update error")
-            return Response({"error": str(inner_error)}, status=500)
-            
-    except Exception as e:
-        logger.exception("Profile update error")
-        return Response({"error": str(e)}, status=500)
-    
+    user = request.user
+    data = request.data
+
+    if 'institution' in data:
+        user.institution = data['institution']
+    if 'bio' in data:
+        user.bio = data['bio']
+    if 'first_name' in data:
+        user.first_name = data['first_name']
+    if 'last_name' in data:
+        user.last_name = data['last_name']
+
+    user.save()
+
+    if 'research_interests' in data and isinstance(data.get('research_interests'), list):
+        user.research_interests.clear()
+        for interest_name in data['research_interests']:
+            interest, _ = ResearchInterest.objects.get_or_create(name=interest_name)
+            user.research_interests.add(interest)
+
+    return Response({
+        'email': user.email,
+        'institution': user.institution,
+        'bio': user.bio,
+        'research_interests': list(user.research_interests.values_list('name', flat=True)),
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'password_set': user.password_set
+    })
+
+
 @api_view(['GET'])
 def get_research_interests(request):
     try:
