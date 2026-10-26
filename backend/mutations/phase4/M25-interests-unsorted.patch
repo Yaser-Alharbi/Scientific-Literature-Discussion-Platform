@@ -1,0 +1,13 @@
+diff --git a/backend/authentication/views.py b/backend/authentication/views.py
+index 43456ca..e15f015 100644
+--- a/backend/authentication/views.py
++++ b/backend/authentication/views.py
+@@ -254,7 +254,7 @@ def update_profile(request):
+ @api_view(['GET'])
+ def get_research_interests(request):
+     try:
+-        interests = ResearchInterest.objects.all().order_by('name')
++        interests = ResearchInterest.objects.all()
+         interest_names = [interest.name for interest in interests]
+         return Response(interest_names)
+     except Exception as e:

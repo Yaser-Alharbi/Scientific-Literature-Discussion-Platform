@@ -1,0 +1,13 @@
+diff --git a/backend/authentication/views.py b/backend/authentication/views.py
+index 43456ca..8dfafbc 100644
+--- a/backend/authentication/views.py
++++ b/backend/authentication/views.py
+@@ -79,7 +79,7 @@ def register(request):
+             user = User.objects.create(
+                 firebase_uid=decoded_token['uid'],
+                 email=email,
+-                username=email,
++                username=first_name,
+                 first_name=first_name,
+                 last_name=last_name,
+                 institution=data.get('institution', ''),

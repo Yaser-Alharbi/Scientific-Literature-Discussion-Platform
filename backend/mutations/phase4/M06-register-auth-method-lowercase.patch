@@ -1,0 +1,13 @@
+diff --git a/backend/authentication/views.py b/backend/authentication/views.py
+index 43456ca..d5408e5 100644
+--- a/backend/authentication/views.py
++++ b/backend/authentication/views.py
+@@ -84,7 +84,7 @@ def register(request):
+                 last_name=last_name,
+                 institution=data.get('institution', ''),
+                 bio=data.get('bio', ''),
+-                auth_methods=auth_method.upper(),
++                auth_methods=auth_method.lower(),
+                 password_set=True if data.get('password') else False
+             )
+ 

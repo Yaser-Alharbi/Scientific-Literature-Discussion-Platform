@@ -1,0 +1,13 @@
+diff --git a/backend/authentication/authentication.py b/backend/authentication/authentication.py
+index d48cf58..27a6ad7 100644
+--- a/backend/authentication/authentication.py
++++ b/backend/authentication/authentication.py
+@@ -17,7 +17,7 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
+             
+         # extract token
+         try:
+-            token = auth_header.split('Bearer ')[1]
++            token = auth_header.split(' ')[-1]
+         except IndexError:
+             return None
+             

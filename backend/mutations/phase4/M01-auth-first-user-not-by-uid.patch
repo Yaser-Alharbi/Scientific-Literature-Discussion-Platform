@@ -1,0 +1,13 @@
+diff --git a/backend/authentication/authentication.py b/backend/authentication/authentication.py
+index d48cf58..7caac14 100644
+--- a/backend/authentication/authentication.py
++++ b/backend/authentication/authentication.py
+@@ -28,7 +28,7 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
+             
+             # get or create user
+             try:
+-                user = User.objects.get(firebase_uid=uid)
++                user = User.objects.first()
+             except User.DoesNotExist:
+                 raise exceptions.AuthenticationFailed('User authenticated with Firebase but not found in Django database')
+                 

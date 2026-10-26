@@ -1,0 +1,13 @@
+diff --git a/backend/authentication/views.py b/backend/authentication/views.py
+index 43456ca..6ff4090 100644
+--- a/backend/authentication/views.py
++++ b/backend/authentication/views.py
+@@ -183,7 +183,7 @@ def set_password(request):
+             user.set_password(request.data['password'])
+             user.save()
+             user.password_set = True
+-            if 'EMAIL' not in user.auth_methods:
++            if 'EMAIL' in user.auth_methods:
+                 user.auth_methods = user.auth_methods + 'EMAIL'
+             user.save()
+             return Response({"message": "Password updated successfully"})

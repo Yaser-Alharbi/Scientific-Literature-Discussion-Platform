@@ -1,0 +1,13 @@
+diff --git a/backend/authentication/views.py b/backend/authentication/views.py
+index 43456ca..07328e5 100644
+--- a/backend/authentication/views.py
++++ b/backend/authentication/views.py
+@@ -69,7 +69,7 @@ def register(request):
+             last_name = data.get('last_name', '')
+         
+         try:
+-            user = User.objects.get(firebase_uid=decoded_token['uid'])
++            raise User.DoesNotExist
+             if data.get('password'):
+                 user.set_password(data['password'])
+                 user.save()
