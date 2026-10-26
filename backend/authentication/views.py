@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from firebase_admin import auth
 from .models import User, ResearchInterest
+from .serializers import UserProfileSerializer
 import logging
 logger = logging.getLogger(__name__)
 # Create your views here.
@@ -72,17 +73,7 @@ def register(request):
 
 @api_view(['GET'])
 def user_profile(request):
-    user = request.user
-    return Response({
-        'email': user.email,
-        'institution': user.institution,
-        'bio': user.bio,
-        'research_interests': list(user.research_interests.values_list('name', flat=True)),
-        'auth_methods': user.auth_methods,
-        'first_name': user.first_name,
-        'last_name': user.last_name,
-        'password_set': user.password_set
-    })
+    return Response(UserProfileSerializer(request.user).data)
 
 
 @api_view(['POST'])
