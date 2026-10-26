@@ -1,0 +1,20 @@
+diff --git a/backend/livestream/views.py b/backend/livestream/views.py
+index 7f45eab..79bdb18 100644
+--- a/backend/livestream/views.py
++++ b/backend/livestream/views.py
+@@ -465,13 +465,13 @@ def webhook(request):
+         
+         # Log events differently based on type
+         if event_type == 'room_finished':
+-            handle_room_finished(event_data)
++            handle_participant_left(event_data)
+ 
+         elif event_type == 'participant_joined':
+             handle_participant_joined(event_data)
+ 
+         elif event_type == 'participant_left':
+-            handle_participant_left(event_data)
++            handle_room_finished(event_data)
+         
+         # Return success
+         return Response({'success': True})

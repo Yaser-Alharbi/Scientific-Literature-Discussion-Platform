@@ -1,0 +1,13 @@
+diff --git a/backend/papers/views.py b/backend/papers/views.py
+index 2aaa9cb..1145115 100644
+--- a/backend/papers/views.py
++++ b/backend/papers/views.py
+@@ -21,7 +21,7 @@ def search_scholar(request):
+     
+     # rate limiting - allow only one request per 5 seconds per user. Using free plan of serpapi
+     user_id = request.user.id
+-    cache_key = f'scholar_search_{user_id}'
++    cache_key = 'scholar_search'
+     last_request_time = cache.get(cache_key)
+     
+     if last_request_time and (time.time() - last_request_time) < 5:

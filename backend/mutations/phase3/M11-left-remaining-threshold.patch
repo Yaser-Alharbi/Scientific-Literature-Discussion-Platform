@@ -1,0 +1,13 @@
+diff --git a/backend/livestream/webhook_events.py b/backend/livestream/webhook_events.py
+index 373b92a..52c618a 100644
+--- a/backend/livestream/webhook_events.py
++++ b/backend/livestream/webhook_events.py
+@@ -175,7 +175,7 @@ def handle_participant_left(event_data):
+             if db_count != remaining_count:
+                 
+                 # Clear participants for this room and recreate from LiveKit data
+-                if remaining_count == 0:
++                if remaining_count <= 1:
+                     # If no remaining participants, simple clear the database
+                     Participant.objects.filter(room=room).delete()
+                     

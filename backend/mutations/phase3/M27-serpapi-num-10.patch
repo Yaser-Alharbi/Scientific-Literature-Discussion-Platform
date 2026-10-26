@@ -1,0 +1,13 @@
+diff --git a/backend/papers/views.py b/backend/papers/views.py
+index 2aaa9cb..0e91640 100644
+--- a/backend/papers/views.py
++++ b/backend/papers/views.py
+@@ -39,7 +39,7 @@ def search_scholar(request):
+             "engine": "google_scholar",
+             "q": query,
+             "api_key": settings.SERPAPI_KEY,
+-            "num": 20  # number of results
++            "num": 10  # number of results
+         }
+         
+         response = requests.get(api_url, params=params)

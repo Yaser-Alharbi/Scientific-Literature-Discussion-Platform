@@ -238,6 +238,8 @@ UNPAYWALL_EMAIL = os.getenv('UNPAYWALL_EMAIL')
 CROSSREF_EMAIL = os.getenv('CROSSREF_EMAIL', UNPAYWALL_EMAIL)
 
 
+TEST_RUNNER = 'django_backend.test_runner.NetworkBlockingRunner'
+
 # Add REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [

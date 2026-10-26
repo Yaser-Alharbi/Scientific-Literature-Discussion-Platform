@@ -10,7 +10,7 @@ Direction: **fix and rebuild the core first; deploy last.** Same stack (Django, 
 |---|-------|-------|--------|--------|
 | 1 | Repo hygiene | `hygiene` | `phase-1-hygiene` | [x] done, credentials verified by user (see `docs/audit.md`) |
 | 2 | Move/organize only | `organizer` | `phase-2-organizer` | [x] done and approved by user |
-| 3 | Tooling (lint, typecheck, test setup) | `tooling` | `phase-3-tooling` | [ ] |
+| 3 | Tooling (lint, typecheck, test setup) | `tooling` | `phase-3-tooling` | [x] done, report in `docs/reports/phase-3.md` |
 | 4 | Core: foundations (shared infrastructure, auth, profile) | `core-foundations` | `phase-4-foundations` | [ ] |
 | 5 | Core: paper search | `core-papers` | `phase-5-papers` | [ ] |
 | 6 | Core: extracts | `core-extracts` | `phase-6-extracts` | [ ] |
@@ -99,3 +99,12 @@ Settled choices; don't reopen without the user.
 
 ## Parking lot
 Out-of-scope findings go here with the phase they belong to.
+- **Phase 10:** Python 3.13 cannot install `requirements.txt`: `psycopg2-binary==2.9.9` has no wheel for it and will not build. Supported Python is 3.12 until the dependency pass.
+- **Phase 7:** `test_known_bug_accepts_unsigned_bearer_token` (webhook accepts any `Bearer` header), `test_known_bug_anonymous_join_raises` and `test_known_bug_anonymous_join_returns_400` (anonymous join raises `ValueError` on the integer id lookup), `test_known_bug_anonymous_participant_not_removed` (same lookup, swallowed, row stays), `test_known_bug_host_left_deletes_room_twice` (identity and name branches both end the room). Flip each test deliberately when the behavior is fixed.
+- **Phase 5:** `test_known_bug_serpapi_request_has_no_timeout`, `test_known_bug_serpapi_auth_error_returned_as_401`, `test_known_bug_rate_slot_consumed_on_failure`. Flip each test deliberately when the behavior is fixed.
+- **Phase 5:** the DOI cache key uses `hash(title)`. Python randomizes `hash` per process, so with a cache shared across workers (anything but per-process locmem) the DOI cache never hits. Use a stable digest.
+- **Phase 10 / tooling:** no frontend test runner was added: no core phase needs one yet and a new package needs approval. Revisit if phase 4 or 6 wants frontend logic tests.
+- **Phase 10:** the repo `.gitignore` ignores every directory named `scripts`, so `backend/scripts/mutation_check.py` and `frontend/scripts/lint-baseline.mjs` were added with `git add -f`. Add a negation for them to `.gitignore` so later edits show up in `git status`.
+- **Phase 4:** production code still uses `print` where the test run shows it (`papers/services.py`, `authentication/authentication.py`); already listed under phase 4's logging item.
+- **Phase 11:** `npm run build` needs the `NEXT_PUBLIC_*` variables set, otherwise Firebase fails prerendering `/Login`; mention it in the setup docs.
+

@@ -1,0 +1,13 @@
+diff --git a/backend/papers/services.py b/backend/papers/services.py
+index 90952dd..1feffb1 100644
+--- a/backend/papers/services.py
++++ b/backend/papers/services.py
+@@ -108,7 +108,7 @@ def enrich_results_with_unpaywall(results):
+                 
+                 # extract relevant data
+                 unpaywall_info = {
+-                    'is_oa': unpaywall_data.get('is_oa', False),
++                    'is_oa': unpaywall_data.get('is_oa', None),
+                     'oa_status': unpaywall_data.get('oa_status'),
+                     'oa_url': None,
+                     'pdf_url': None,

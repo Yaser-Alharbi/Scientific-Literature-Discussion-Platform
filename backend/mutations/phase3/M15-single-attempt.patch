@@ -1,0 +1,13 @@
+diff --git a/backend/papers/services.py b/backend/papers/services.py
+index 90952dd..bd3a0d2 100644
+--- a/backend/papers/services.py
++++ b/backend/papers/services.py
+@@ -11,7 +11,7 @@ NOT_FOUND_TTL = 60*60*24
+ 
+ # enrichment lookups are retried once on a transient failure: 429, 5xx, timeout, connection error.
+ # crossref throttles at 1 request/second and sends 429 with no retry-after, so the delay is fixed.
+-HTTP_ATTEMPTS = 2
++HTTP_ATTEMPTS = 1
+ HTTP_TIMEOUT = 5
+ HTTP_RETRY_DELAY = 1.0
+ 

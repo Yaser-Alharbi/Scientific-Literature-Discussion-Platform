@@ -1,0 +1,13 @@
+diff --git a/backend/livestream/webhook_events.py b/backend/livestream/webhook_events.py
+index 373b92a..76b5d9a 100644
+--- a/backend/livestream/webhook_events.py
++++ b/backend/livestream/webhook_events.py
+@@ -19,7 +19,7 @@ def handle_room_finished(event_data):
+         room.save()
+         
+         # Clear all participants for this room
+-        Participant.objects.filter(room=room).delete()
++        pass
+         
+     except Room.DoesNotExist:
+         logger.warning(f"[ROOM FINISHED] Room {room_name} not found in database")

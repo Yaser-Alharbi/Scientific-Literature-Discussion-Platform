@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start -p 8080",
-    "lint": "next lint"
+    "lint": "node scripts/lint-baseline.mjs",
+    "lint:full": "next lint --no-inline-config",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@firebase/auth": "^1.8.2",

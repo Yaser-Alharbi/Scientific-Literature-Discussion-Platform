@@ -1,0 +1,13 @@
+diff --git a/backend/livestream/webhook_events.py b/backend/livestream/webhook_events.py
+index 373b92a..0efdf6d 100644
+--- a/backend/livestream/webhook_events.py
++++ b/backend/livestream/webhook_events.py
+@@ -102,7 +102,7 @@ def handle_participant_left(event_data):
+                                         async def delete_livekit_room():
+                                             async with get_livekit_client() as client:
+                                                 await client.room.delete_room(
+-                                                    DeleteRoomRequest(room=room_name)
++                                                    DeleteRoomRequest(room=participant_identity)
+                                                 )
+                                         
+                                         delete_livekit_room()

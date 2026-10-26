@@ -1,0 +1,13 @@
+diff --git a/backend/papers/views.py b/backend/papers/views.py
+index 2aaa9cb..8986ea9 100644
+--- a/backend/papers/views.py
++++ b/backend/papers/views.py
+@@ -48,7 +48,7 @@ def search_scholar(request):
+             error_data = response.json()
+             return Response({
+                 'error': error_data.get('error', 'SerpAPI error')
+-            }, status=response.status_code)
++            }, status=200)
+         
+         result_data = response.json()
+         

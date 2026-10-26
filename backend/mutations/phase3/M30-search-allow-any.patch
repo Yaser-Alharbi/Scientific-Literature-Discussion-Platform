@@ -1,0 +1,21 @@
+diff --git a/backend/papers/views.py b/backend/papers/views.py
+index 2aaa9cb..12e9f1f 100644
+--- a/backend/papers/views.py
++++ b/backend/papers/views.py
+@@ -1,6 +1,6 @@
+ # backend/papers/views.py
+ from rest_framework.decorators import api_view, permission_classes
+-from rest_framework.permissions import IsAuthenticated
++from rest_framework.permissions import IsAuthenticated, AllowAny
+ from rest_framework.response import Response
+ import requests
+ from django.conf import settings
+@@ -11,7 +11,7 @@ from papers.models import PaperExtract
+ from .services import enrich_results_with_doi, enrich_results_with_unpaywall
+ 
+ @api_view(['GET'])
+-@permission_classes([IsAuthenticated])
++@permission_classes([AllowAny])
+ def search_scholar(request):
+     """Search Google Scholar via SerpAPI with rate limiting"""
+     query = request.GET.get('query', '')

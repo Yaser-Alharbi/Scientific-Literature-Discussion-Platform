@@ -1,0 +1,13 @@
+diff --git a/backend/papers/services.py b/backend/papers/services.py
+index 90952dd..5a50924 100644
+--- a/backend/papers/services.py
++++ b/backend/papers/services.py
+@@ -58,7 +58,7 @@ def enrich_results_with_doi(results):
+             crossref_response = fetch_with_retry(crossref_url)
+             
+             if crossref_response is None:
+-                # transient failure, so cache nothing and let the next search retry
++                cache.set(cache_key, NOT_FOUND, NOT_FOUND_TTL)
+                 continue
+             
+             if crossref_response.status_code == 200:

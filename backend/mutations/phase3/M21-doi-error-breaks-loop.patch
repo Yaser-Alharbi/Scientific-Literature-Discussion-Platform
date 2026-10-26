@@ -1,0 +1,13 @@
+diff --git a/backend/papers/services.py b/backend/papers/services.py
+index 90952dd..8647c99 100644
+--- a/backend/papers/services.py
++++ b/backend/papers/services.py
+@@ -74,7 +74,7 @@ def enrich_results_with_doi(results):
+                     cache.set(cache_key, NOT_FOUND, NOT_FOUND_TTL)
+         except Exception as e:
+             print(f"Error enriching result with DOI: {e}")
+-            continue
++            break
+ 
+ def enrich_results_with_unpaywall(results):
+     """Add Unpaywall data for results that have DOIs"""

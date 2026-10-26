@@ -35,3 +35,25 @@ For each test you wrote, mentally (or actually) apply realistic bugs to the prod
 - SerpAPI is paid: always fake it. Firebase, LiveKit and network calls are faked at the boundary.
 - Backend: Django's test runner (`python manage.py test`) on SQLite, no browser. The Selenium suite in `authentication/tests.py` is optional.
 - Run the whole project suite before calling anything done, not just the new test file, and name any failure.
+
+## Running the checks
+Backend (Python 3.12; 3.11 also works; 3.13 does not, see the parking lot), from `backend/`, in a venv with `pip install -r requirements.txt`:
+- `python manage.py test` runs the browserless suite on SQLite. It needs no `.env` and no `SECRET_KEY`; the runner supplies a test-only key. The Selenium class in `authentication/tests.py` is skipped unless `RUN_SELENIUM=1` (it also needs the frontend on `localhost:4000` and Chrome).
+- `python manage.py test --shuffle 1` (any seed) must also pass: tests may not depend on each other or on a warm cache.
+- `python manage.py makemigrations --check --dry-run` must report no changes.
+- `python scripts/mutation_check.py mutations/phase3` must report every patch killed.
+
+Frontend, from `frontend/` after `npm ci`:
+- `npm run lint` is a ratchet: it fails on any finding beyond `lint-baseline.json` (keyed by file and rule) and ignores `eslint-disable` comments. `npm run lint:full` prints the raw report. After fixing findings, `node scripts/lint-baseline.mjs --update` lowers the baseline; it refuses to raise it.
+- `npm run typecheck` runs `tsc --noEmit`.
+- `npm run build` needs the `NEXT_PUBLIC_*` variables from `.env.example` set (placeholder values are enough for a build), otherwise Firebase fails while prerendering `/Login`.
+
+### The network guard
+`django_backend.test_runner.NetworkBlockingRunner` blocks every non-loopback DNS lookup and connection while tests run, and clears proxy variables so a loopback proxy cannot be used to get out. It raises `NetworkAccessBlocked`, a `BaseException` on purpose: production code catches `Exception` around its third-party calls (the `enrich_*` loops, `search_scholar`, `FirebaseAuthentication`), and an ordinary exception would be swallowed and leave the test green. A test that reaches the network therefore errors with that name; fix it by faking the boundary with `testsupport/` (`FakeHTTP`, `FakeLiveKit`, `fake_firebase`, `FakeClock`), never by catching the error.
+
+### The mutation runner
+`mutations/<phase>/*.patch` are one-line production-code bugs written before the tests that must catch them. The runner applies each one in turn, runs the suite and reverts it. A mutant counts as killed only if the suite fails and still runs the same number of tests. A patch that no longer applies is stale; one that does not compile or fails `manage.py check` is invalid; neither counts as a kill, and either fails the run.
+- To add a mutant, make the edit in the work tree, run `git diff -- <file> > mutations/<phase>/Mxx-<slug>.patch`, then `git checkout -- <file>`. Never write a patch by hand. Patches may not touch tests, `testsupport/`, `scripts/` or `mutations/`.
+- A phase that deliberately changes tested behavior first flips the relevant `test_known_bug_*` test, then retires the patches that no longer apply: delete the patch in the same commit and give the reason in the commit message and the phase report. Never edit a patch to make it apply without re-checking that it is still a real bug.
+- A mutant that turns out to be equivalent (no test can tell it apart) is documented in the phase report, never killed by asserting on internals.
+

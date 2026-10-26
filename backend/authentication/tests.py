@@ -1,5 +1,6 @@
 # backend/authentication/tests.py
 
+import os
 import requests
 import json
 import random
@@ -19,6 +20,7 @@ RANDOM_NUMBERS = f"{random.randint(10, 99)}"
 # Base URL for frontend testing
 BASE_URL = "http://localhost:4000"
 
+@unittest.skipUnless(os.environ.get('RUN_SELENIUM') == '1', 'needs frontend on localhost:4000 and Chrome')
 class FrontendAuthenticationTests(unittest.TestCase):
     """Tests using Selenium"""
     

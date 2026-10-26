@@ -1,0 +1,13 @@
+diff --git a/backend/papers/views.py b/backend/papers/views.py
+index 2aaa9cb..6b71536 100644
+--- a/backend/papers/views.py
++++ b/backend/papers/views.py
+@@ -24,7 +24,7 @@ def search_scholar(request):
+     cache_key = f'scholar_search_{user_id}'
+     last_request_time = cache.get(cache_key)
+     
+-    if last_request_time and (time.time() - last_request_time) < 5:
++    if last_request_time and (time.time() - last_request_time) < 0:
+         return Response({
+             'error': 'Rate limit exceeded. Please wait a moment before trying again.'
+         }, status=429)
