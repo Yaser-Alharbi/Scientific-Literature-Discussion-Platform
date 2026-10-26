@@ -73,10 +73,15 @@ class FirebaseAuthenticationTests(FirebaseApiCase):
             with self.assertRaises(auth.CertificateFetchError):
                 self.call('get', '/api/user-profile', 'tok-alice')
 
-    def test_invalid_token_on_a_public_view_is_401_not_anonymous(self):
-        # pins the decision that a bad token is always rejected, even where anonymous access is allowed
+    def test_invalid_token_on_a_public_view_is_treated_as_anonymous(self):
+        # Deliberately flipped from "is 401": until every frontend call sends a fresh token (phase 7 restores
+        # the strict behavior), a stale persisted token must not break views that allow anonymous access.
         response = self.call('get', '/api/livestream/rooms/', 'not-a-token')
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 200)
+
+    def test_unregistered_uid_on_a_public_view_is_treated_as_anonymous(self):
+        response = self.call('get', '/api/livestream/rooms/', 'tok-gina')
+        self.assertEqual(response.status_code, 200)
 
     def test_tokens_are_verified_with_a_60_second_clock_skew_allowance(self):
         # catches: zero tolerance, which rejects fresh tokens as "used too early" when the server clock is slightly behind

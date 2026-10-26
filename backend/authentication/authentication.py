@@ -3,6 +3,7 @@ import logging
 from django.contrib.auth.models import AnonymousUser
 from rest_framework import authentication
 from rest_framework import exceptions
+from rest_framework.permissions import AllowAny
 from firebase_admin import auth
 from .models import User
 
@@ -41,13 +42,25 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
         if token is None:
             return None
 
-        decoded_token = verify_firebase_token(token)
         try:
-            user = User.objects.get(firebase_uid=decoded_token.get('uid'))
-        except User.DoesNotExist:
-            logger.warning('Firebase uid %s has no Django user', decoded_token.get('uid'))
-            raise exceptions.AuthenticationFailed('User is authenticated with Firebase but not registered')
+            decoded_token = verify_firebase_token(token)
+            try:
+                user = User.objects.get(firebase_uid=decoded_token.get('uid'))
+            except User.DoesNotExist:
+                logger.warning('Firebase uid %s has no Django user', decoded_token.get('uid'))
+                raise exceptions.AuthenticationFailed('User is authenticated with Firebase but not registered')
+        except exceptions.AuthenticationFailed:
+            # Frontend calls may still carry a stale persisted token; where anonymous access is fine, that must
+            # not turn into a 401. Protected views keep the distinct 401 message.
+            if self._allows_anonymous(request):
+                return None
+            raise
         return (user, token)
+
+    @staticmethod
+    def _allows_anonymous(request):
+        view = request.parser_context['view']
+        return any(isinstance(permission, AllowAny) for permission in view.get_permissions())
 
     def authenticate_header(self, request):
         return 'Bearer'
