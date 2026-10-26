@@ -34,3 +34,14 @@ class ProfileUpdateSerializer(serializers.Serializer):
     first_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
     last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
     research_interests = serializers.ListField(child=InterestNameField(), required=False)
+
+
+class RegisterSerializer(serializers.Serializer):
+    """What the signup form sends; the Firebase token supplies the uid, email and (for Google) the name."""
+
+    auth_methods = serializers.CharField(max_length=50, default='email')
+    first_name = serializers.CharField(max_length=150, required=False, allow_blank=True, default='')
+    last_name = serializers.CharField(max_length=150, required=False, allow_blank=True, default='')
+    institution = serializers.CharField(max_length=100, required=False, allow_blank=True, default='')
+    bio = serializers.CharField(required=False, allow_blank=True, default='')
+    password = serializers.CharField(required=False, allow_blank=True, default='')

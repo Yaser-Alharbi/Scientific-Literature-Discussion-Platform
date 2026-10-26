@@ -3,73 +3,64 @@
 from django.shortcuts import render
 from django.db import transaction
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.exceptions import NotAuthenticated, ValidationError
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from firebase_admin import auth
 from .models import User, ResearchInterest
-from .serializers import ProfileUpdateSerializer, UserProfileSerializer
+from .authentication import FirebaseTokenAuthentication
+from .serializers import ProfileUpdateSerializer, RegisterSerializer, UserProfileSerializer
 import logging
 logger = logging.getLogger(__name__)
 # Create your views here.
 
-# first name and last name
-
 @api_view(['POST'])
-@authentication_classes([]) # the caller has no Django user yet, so FirebaseAuthentication must not run
-@permission_classes([AllowAny]) # allow any user to register, if I dont put this here there would be a chicken and egg problem. User needs to register before they can login.
+@authentication_classes([FirebaseTokenAuthentication])  # the caller has no Django user yet
+@permission_classes([AllowAny])  # permission comes from the Firebase token checked below, not from a Django user
 def register(request):
-    try:
-        token = request.headers['Authorization'].split('Bearer ')[1]
-        decoded_token = auth.verify_id_token(token)
-        
-        data = request.data
-        auth_method = data.get('auth_methods', 'email').lower()
-        
-        # Extract email
-        email = decoded_token.get('email')
-        
-        # Get names from token for Google users
-        first_name = ''
-        last_name = ''
-        
-        if auth_method == 'google':
-            first_name = decoded_token.get('name', '').split(' ')[0] if decoded_token.get('name') else ''
-            last_name_parts = decoded_token.get('name', '').split(' ')[1:] if decoded_token.get('name') else []
-            last_name = ' '.join(last_name_parts)
-        else:
-            # For email users, use data from request
-            first_name = data.get('first_name', '')
-            last_name = data.get('last_name', '')
-        
-        try:
-            user = User.objects.get(firebase_uid=decoded_token['uid'])
-            if data.get('password'):
-                user.set_password(data['password'])
-                user.save()
-                return Response({"message": "Password updated"})
-        except User.DoesNotExist:
-            # Create new user
-            user = User.objects.create(
-                firebase_uid=decoded_token['uid'],
-                email=email,
-                username=email,
-                first_name=first_name,
-                last_name=last_name,
-                institution=data.get('institution', ''),
-                bio=data.get('bio', ''),
-                auth_methods=auth_method.upper(),
-                password_set=True if data.get('password') else False
-            )
+    claims = request.auth
+    if claims is None:
+        raise NotAuthenticated()
+    email = claims.get('email')
+    if not email:
+        raise ValidationError({'email': 'The Firebase token has no email address.'})
 
-            if data.get('password') and auth_method != 'google':
-                user.set_password(data['password'])
-                user.save()
+    serializer = RegisterSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+    auth_method = data['auth_methods'].lower()
+    is_google = auth_method == 'google'
+    password = data['password']
 
-        return Response({"message": "User created/updated successfully"})
-    except Exception as e:
-        logger.exception("Registration error")
-        return Response({"error": str(e)}, status=500)
+    if is_google:
+        name_parts = claims.get('name', '').split(' ')
+        first_name, last_name = name_parts[0], ' '.join(name_parts[1:])
+    else:
+        first_name, last_name = data['first_name'], data['last_name']
 
+    user, created = User.objects.get_or_create(
+        firebase_uid=claims['uid'],
+        defaults={
+            'email': email,
+            'username': email,
+            'first_name': first_name,
+            'last_name': last_name,
+            'institution': data['institution'],
+            'bio': data['bio'],
+            'auth_methods': auth_method.upper(),
+            # Google accounts have no password of their own, so a posted one is ignored
+            'password_set': bool(password) and not is_google,
+        },
+    )
+
+    if not created and password:
+        user.set_password(password)
+        user.save()
+        return Response({"message": "Password updated"})
+    if created and password and not is_google:
+        user.set_password(password)
+        user.save()
+    return Response({"message": "User created/updated successfully"})
 
 
 @api_view(['GET'])

@@ -1,5 +1,6 @@
 import logging
 
+from django.contrib.auth.models import AnonymousUser
 from rest_framework import authentication
 from rest_framework import exceptions
 from firebase_admin import auth
@@ -47,6 +48,22 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
             logger.warning('Firebase uid %s has no Django user', decoded_token.get('uid'))
             raise exceptions.AuthenticationFailed('User is authenticated with Firebase but not registered')
         return (user, token)
+
+    def authenticate_header(self, request):
+        return 'Bearer'
+
+
+class FirebaseTokenAuthentication(authentication.BaseAuthentication):
+    """Verifies the Firebase token without requiring a Django user, for the register endpoint.
+
+    request.auth holds the decoded claims; request.user stays anonymous.
+    """
+
+    def authenticate(self, request):
+        token = bearer_token(request)
+        if token is None:
+            return None
+        return (AnonymousUser(), verify_firebase_token(token))
 
     def authenticate_header(self, request):
         return 'Bearer'

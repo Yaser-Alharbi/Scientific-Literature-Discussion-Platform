@@ -11,6 +11,7 @@ TOKENS = {
     'tok-alice': {'uid': 'uid-alice', 'email': 'alice@example.com'},
     'tok-bob': {'uid': 'uid-bob', 'email': 'bob@example.com'},
     'tok-gina': {'uid': 'uid-gina', 'email': 'gina@example.com', 'name': 'Gina Maria Lopez'},
+    'tok-noemail': {'uid': 'uid-noemail'},
     'tok-solo': {'uid': 'uid-solo', 'email': 'solo@example.com', 'name': 'Solo'},
 }
 

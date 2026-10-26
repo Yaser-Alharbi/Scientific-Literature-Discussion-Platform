@@ -70,3 +70,46 @@ class RegisterTests(FirebaseApiCase):
         self.assertEqual((response.status_code, response.json()), (200, CREATED))
         alice.refresh_from_db()
         self.assertEqual(alice.institution, 'A')
+
+
+class RegisterRejectionTests(FirebaseApiCase):
+    def register(self, token, data=None):
+        return self.call('post', '/api/register', token, data or {})
+
+    def test_missing_header_is_401_and_creates_nothing(self):
+        # catches: a KeyError on the header answered as 500
+        response = self.register(None)
+        self.assertEqual((response.status_code, response.json()),
+                         (401, {'error': 'Authentication credentials were not provided.'}))
+        self.assertEqual(User.objects.count(), 0)
+
+    def test_invalid_token_is_401_and_creates_nothing(self):
+        response = self.register('not-a-token')
+        self.assertEqual((response.status_code, response.json()),
+                         (401, {'error': 'Invalid or expired Firebase token'}))
+        self.assertEqual(User.objects.count(), 0)
+
+    def test_token_without_email_is_400_not_a_database_error(self):
+        # catches: username=None reaching the database (500 with the constraint text)
+        response = self.register('tok-noemail')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('email', response.json()['error'])
+        self.assertNotIn('constraint', response.json()['error'].lower())
+        self.assertEqual(User.objects.count(), 0)
+
+    def test_over_long_institution_is_400(self):
+        response = self.register('tok-alice', {'institution': 'x' * 101})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('institution', response.json()['error'])
+        self.assertEqual(User.objects.count(), 0)
+
+    def test_google_signup_does_not_claim_a_password_was_set(self):
+        # catches: password_set True although the password is ignored for Google accounts
+        self.register('tok-gina', {'auth_methods': 'google', 'password': 'ignored-1'})
+        user = User.objects.get()
+        self.assertFalse(user.password_set)
+        self.assertFalse(user.check_password('ignored-1'))
+
+    def test_token_is_verified_once_with_the_clock_skew_allowance(self):
+        self.register('tok-alice')
+        self.assertEqual(self.verify_calls, [{'clock_skew_seconds': 60}])
