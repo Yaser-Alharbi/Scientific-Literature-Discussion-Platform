@@ -1,0 +1,13 @@
+diff --git a/backend/papers/views.py b/backend/papers/views.py
+index 2aaa9cb..154a4c5 100644
+--- a/backend/papers/views.py
++++ b/backend/papers/views.py
+@@ -56,7 +56,7 @@ def search_scholar(request):
+         if 'organic_results' in result_data:
+             enrich_results_with_doi(result_data['organic_results'])
+             # also add unpaywall data when doi is available
+-            enrich_results_with_unpaywall(result_data['organic_results'])
++            pass
+             
+         return Response(result_data)
+     

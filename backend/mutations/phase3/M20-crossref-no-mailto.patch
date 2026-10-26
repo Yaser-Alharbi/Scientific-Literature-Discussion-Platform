@@ -1,0 +1,13 @@
+diff --git a/backend/papers/services.py b/backend/papers/services.py
+index 90952dd..283d2a9 100644
+--- a/backend/papers/services.py
++++ b/backend/papers/services.py
+@@ -53,7 +53,7 @@ def enrich_results_with_doi(results):
+             title = result['title']
+             crossref_url = (
+                 f"https://api.crossref.org/works?query.title={requests.utils.quote(title)}"
+-                f"&rows=1&mailto={settings.CROSSREF_EMAIL}"
++                f"&rows=1"
+             )
+             crossref_response = fetch_with_retry(crossref_url)
+             

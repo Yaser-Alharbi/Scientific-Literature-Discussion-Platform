@@ -1,0 +1,13 @@
+diff --git a/backend/papers/services.py b/backend/papers/services.py
+index 90952dd..86d39d4 100644
+--- a/backend/papers/services.py
++++ b/backend/papers/services.py
+@@ -29,7 +29,7 @@ def fetch_with_retry(url):
+             print(f"Transient status {response.status_code} from {url}")
+ 
+         if attempt < HTTP_ATTEMPTS - 1:
+-            time.sleep(HTTP_RETRY_DELAY)
++            pass
+ 
+     return None
+ 

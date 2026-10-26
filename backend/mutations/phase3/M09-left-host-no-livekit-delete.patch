@@ -1,0 +1,13 @@
+diff --git a/backend/livestream/webhook_events.py b/backend/livestream/webhook_events.py
+index 373b92a..652d17d 100644
+--- a/backend/livestream/webhook_events.py
++++ b/backend/livestream/webhook_events.py
+@@ -105,7 +105,7 @@ def handle_participant_left(event_data):
+                                                     DeleteRoomRequest(room=room_name)
+                                                 )
+                                         
+-                                        delete_livekit_room()
++                                        pass
+                                     except Exception:
+                                         logger.exception("[PARTICIPANT LEFT] Error deleting LiveKit room")
+                                         

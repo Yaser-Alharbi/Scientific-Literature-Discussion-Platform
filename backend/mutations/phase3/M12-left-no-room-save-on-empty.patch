@@ -1,0 +1,13 @@
+diff --git a/backend/livestream/webhook_events.py b/backend/livestream/webhook_events.py
+index 373b92a..c51ec62 100644
+--- a/backend/livestream/webhook_events.py
++++ b/backend/livestream/webhook_events.py
+@@ -181,7 +181,7 @@ def handle_participant_left(event_data):
+                     
+                     # If LiveKit shows no participants, mark room as inactive
+                     room.is_active = False
+-                    room.save()
++                    pass
+                     
+                     # delete the room from LiveKit
+                     try:

@@ -1,0 +1,17 @@
+diff --git a/backend/livestream/webhook_events.py b/backend/livestream/webhook_events.py
+index 373b92a..09afdc6 100644
+--- a/backend/livestream/webhook_events.py
++++ b/backend/livestream/webhook_events.py
+@@ -45,10 +45,10 @@ def handle_participant_joined(event_data):
+                 user = User.objects.get(id=participant_identity)
+                 
+                 # Create participant if doesn't exist
+-                Participant.objects.get_or_create(
++                Participant.objects.create(
+                     room=room,
+                     user=user,
+-                    defaults={'role': 'viewer'}  # Default role
++                    role='viewer',
+                 )
+ 
+             except User.DoesNotExist:

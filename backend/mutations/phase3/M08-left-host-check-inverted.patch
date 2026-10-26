@@ -1,0 +1,13 @@
+diff --git a/backend/livestream/webhook_events.py b/backend/livestream/webhook_events.py
+index 373b92a..051d4ac 100644
+--- a/backend/livestream/webhook_events.py
++++ b/backend/livestream/webhook_events.py
+@@ -87,7 +87,7 @@ def handle_participant_left(event_data):
+                                 Participant.objects.filter(room=room, user=user).delete()
+                                 
+                                 # Check if this was the host
+-                                if room.host == user:
++                                if room.host != user:
+                                     
+                                     # Handle host leaving - mark room inactive and delete all participants
+                                     room.is_active = False

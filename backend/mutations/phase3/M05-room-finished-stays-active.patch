@@ -1,0 +1,13 @@
+diff --git a/backend/livestream/webhook_events.py b/backend/livestream/webhook_events.py
+index 373b92a..046d264 100644
+--- a/backend/livestream/webhook_events.py
++++ b/backend/livestream/webhook_events.py
+@@ -15,7 +15,7 @@ def handle_room_finished(event_data):
+     # Mark room as inactive in database
+     try:
+         room = Room.objects.get(room_id=room_name)
+-        room.is_active = False
++        room.is_active = True
+         room.save()
+         
+         # Clear all participants for this room
