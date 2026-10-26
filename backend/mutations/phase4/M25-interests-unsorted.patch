@@ -1,5 +1,5 @@
 diff --git a/backend/authentication/views.py b/backend/authentication/views.py
-index 2840729..2c2ac96 100644
+index 2840729..18589a8 100644
 --- a/backend/authentication/views.py
 +++ b/backend/authentication/views.py
 @@ -104,7 +104,7 @@ def update_profile(request):
@@ -7,7 +7,7 @@ index 2840729..2c2ac96 100644
  @permission_classes([AllowAny])
  def get_research_interests(request):
 -    return Response(list(ResearchInterest.objects.order_by('name').values_list('name', flat=True)))
-+    return Response(list(ResearchInterest.objects.all().values_list('name', flat=True)))
++    return Response(list(ResearchInterest.objects.order_by('-name').values_list('name', flat=True)))
  
  
  @api_view(['POST'])

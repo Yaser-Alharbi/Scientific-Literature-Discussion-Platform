@@ -1,13 +1,13 @@
 diff --git a/backend/papers/services.py b/backend/papers/services.py
-index 90952dd..6344e8a 100644
+index 2c44298..cdbdae4 100644
 --- a/backend/papers/services.py
 +++ b/backend/papers/services.py
-@@ -24,7 +24,7 @@ def fetch_with_retry(url):
-             print(f"Transient error requesting {url}: {e}")
+@@ -27,7 +27,7 @@ def fetch_with_retry(url):
+             logger.warning("Transient error requesting %s: %s", url, e)
          else:
              # 429 and 5xx are transient, everything else is an answer the caller can act on
 -            if response.status_code != 429 and response.status_code < 500:
 +            if response.status_code < 500:
                  return response
-             print(f"Transient status {response.status_code} from {url}")
+             logger.warning("Transient status %s from %s", response.status_code, url)
  

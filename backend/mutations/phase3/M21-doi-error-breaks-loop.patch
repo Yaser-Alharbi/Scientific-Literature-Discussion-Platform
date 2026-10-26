@@ -1,11 +1,11 @@
 diff --git a/backend/papers/services.py b/backend/papers/services.py
-index 90952dd..8647c99 100644
+index 2c44298..ac851a9 100644
 --- a/backend/papers/services.py
 +++ b/backend/papers/services.py
-@@ -74,7 +74,7 @@ def enrich_results_with_doi(results):
+@@ -77,7 +77,7 @@ def enrich_results_with_doi(results):
                      cache.set(cache_key, NOT_FOUND, NOT_FOUND_TTL)
-         except Exception as e:
-             print(f"Error enriching result with DOI: {e}")
+         except Exception:
+             logger.exception("Error enriching result with DOI")
 -            continue
 +            break
  
