@@ -669,16 +669,3 @@ def update_participant_role(request, room_id, participant_id):
     except Exception as e:
         logger.exception("Error updating participant role")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def research_interests(request):
-    """Get all research interests in the system"""
-    from authentication.models import ResearchInterest
-    
-    interests = ResearchInterest.objects.all().order_by('name')
-    interest_names = [interest.name for interest in interests]
-    
-    return Response(interest_names)
-
-

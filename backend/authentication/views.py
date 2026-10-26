@@ -1,18 +1,13 @@
 # backend/authentication/views.py
 
-from django.shortcuts import render
 from django.db import transaction
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.exceptions import NotAuthenticated, ValidationError
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
-from firebase_admin import auth
 from .models import User, ResearchInterest
 from .authentication import FirebaseTokenAuthentication
 from .serializers import ProfileUpdateSerializer, RegisterSerializer, UserProfileSerializer
-import logging
-logger = logging.getLogger(__name__)
-# Create your views here.
 
 @api_view(['POST'])
 @authentication_classes([FirebaseTokenAuthentication])  # the caller has no Django user yet
@@ -106,15 +101,12 @@ def update_profile(request):
 
 
 @api_view(['GET'])
+@authentication_classes([])  # public: a stale token from a logged-in page must not turn this into a 401
+@permission_classes([AllowAny])
 def get_research_interests(request):
-    try:
-        interests = ResearchInterest.objects.all().order_by('name')
-        interest_names = [interest.name for interest in interests]
-        return Response(interest_names)
-    except Exception as e:
-        return Response({"error": str(e)}, status=500)
+    return Response(list(ResearchInterest.objects.order_by('name').values_list('name', flat=True)))
 
-    
+
 @api_view(['POST'])
 def sync_reset_password(request):
     # The reset page signs in with the new password first, so the caller is always authenticated.
