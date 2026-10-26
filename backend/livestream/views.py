@@ -4,7 +4,7 @@ import logging
 import uuid
 import json
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from django.views.decorators.csrf import csrf_exempt
@@ -424,6 +424,7 @@ def get_room_token(request, room_id):
 
 @csrf_exempt
 @api_view(['POST', 'GET'])
+@authentication_classes([])  # the bearer token is LiveKit's, not a Firebase ID token
 @permission_classes([AllowAny])
 def webhook(request):
     """Handle LiveKit webhooks for participant and room events"""

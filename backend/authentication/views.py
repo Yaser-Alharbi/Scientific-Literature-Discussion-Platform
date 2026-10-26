@@ -1,7 +1,7 @@
 # backend/authentication/views.py
 
 from django.shortcuts import render
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from firebase_admin import auth
@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 # first name and last name
 
 @api_view(['POST'])
+@authentication_classes([]) # the caller has no Django user yet, so FirebaseAuthentication must not run
 @permission_classes([AllowAny]) # allow any user to register, if I dont put this here there would be a chicken and egg problem. User needs to register before they can login.
 def register(request):
     try:

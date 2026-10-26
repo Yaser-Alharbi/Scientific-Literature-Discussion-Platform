@@ -3,40 +3,42 @@ from rest_framework import exceptions
 from firebase_admin import auth
 from .models import User
 
+BEARER_PREFIX = 'Bearer '
+
+
+def bearer_token(request):
+    """The token of an `Authorization: Bearer <token>` header, or None when there is no such header."""
+    header = request.META.get('HTTP_AUTHORIZATION', '')
+    return header[len(BEARER_PREFIX):] if header.startswith(BEARER_PREFIX) else None
+
+
+def verify_firebase_token(token):
+    """Decoded claims of a Firebase ID token. Raises AuthenticationFailed when the token is invalid or expired.
+
+    Other errors (Firebase unreachable, certificates not fetchable) are server problems and propagate.
+    """
+    try:
+        return auth.verify_id_token(token)
+    except (ValueError, auth.InvalidIdTokenError):
+        raise exceptions.AuthenticationFailed('Invalid or expired Firebase token')
+
+
 class FirebaseAuthentication(authentication.BaseAuthentication):
     """
     Custom authentication class for DRF that authenticates using Firebase tokens.
     """
-    
+
     def authenticate(self, request):
-        
-        # Get the auth header
-        auth_header = request.META.get('HTTP_AUTHORIZATION')
-        if not auth_header:
+        token = bearer_token(request)
+        if token is None:
             return None
-            
-        # extract token
+
+        decoded_token = verify_firebase_token(token)
         try:
-            token = auth_header.split('Bearer ')[1]
-        except IndexError:
-            return None
-            
-        # verify token with firebase
-        try:
-            decoded_token = auth.verify_id_token(token)
-            uid = decoded_token.get('uid')
-            
-            # get or create user
-            try:
-                user = User.objects.get(firebase_uid=uid)
-            except User.DoesNotExist:
-                raise exceptions.AuthenticationFailed('User authenticated with Firebase but not found in Django database')
-                
-            # return authenticated user
-            return (user, token)
-        except Exception as e:
-            print(f"Firebase auth error: {str(e)}")
-            return None
-    
+            user = User.objects.get(firebase_uid=decoded_token.get('uid'))
+        except User.DoesNotExist:
+            raise exceptions.AuthenticationFailed('User is authenticated with Firebase but not registered')
+        return (user, token)
+
     def authenticate_header(self, request):
         return 'Bearer'

@@ -28,7 +28,7 @@ def make_user(name, **fields):
 class FirebaseApiCase(TestCase):
     def setUp(self):
         cm = fake_firebase(TOKENS)
-        cm.__enter__()
+        self.verify_calls = cm.__enter__()
         self.addCleanup(cm.__exit__, None, None, None)
         self.client = APIClient()
 

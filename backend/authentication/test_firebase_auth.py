@@ -1,7 +1,10 @@
 # backend/authentication/test_firebase_auth.py
 """FirebaseAuthentication, exercised through GET /api/user-profile."""
 
+from firebase_admin import auth
+
 from authentication.models import User
+from testsupport.auth import fake_firebase
 from testsupport.api import FirebaseApiCase, make_user
 
 
@@ -45,4 +48,32 @@ class FirebaseAuthenticationTests(FirebaseApiCase):
         # catches: TokenAuthentication in the defaults without rest_framework.authtoken installed,
         # which raised AttributeError for any "Authorization: Token ..." header
         response = self.client.get('/api/user-profile', HTTP_AUTHORIZATION='Token abc')
+        self.assertEqual(response.status_code, 401)
+
+    def test_invalid_token_says_so(self):
+        # catches: the generic "credentials were not provided" message for a bad token
+        response = self.call('get', '/api/user-profile', 'not-a-token')
+        self.assertEqual(response.json(), {'error': 'Invalid or expired Firebase token'})
+
+    def test_expired_token_is_401_with_the_same_message(self):
+        # catches: only ValueError handled, so Firebase's own InvalidIdTokenError family escapes
+        with fake_firebase({}, error=auth.ExpiredIdTokenError('Token expired', cause=None)):
+            response = self.call('get', '/api/user-profile', 'tok-alice')
+        self.assertEqual((response.status_code, response.json()),
+                         (401, {'error': 'Invalid or expired Firebase token'}))
+
+    def test_unregistered_uid_says_the_user_is_not_registered(self):
+        response = self.call('get', '/api/user-profile', 'tok-gina')
+        self.assertEqual(response.json(), {'error': 'User is authenticated with Firebase but not registered'})
+
+    def test_firebase_outage_is_not_reported_as_a_bad_token(self):
+        # catches: a blanket except turning a certificate fetch failure into a 401
+        outage = auth.CertificateFetchError('cannot fetch certificates', cause=None)
+        with fake_firebase({}, error=outage):
+            with self.assertRaises(auth.CertificateFetchError):
+                self.call('get', '/api/user-profile', 'tok-alice')
+
+    def test_invalid_token_on_a_public_view_is_401_not_anonymous(self):
+        # pins the decision that a bad token is always rejected, even where anonymous access is allowed
+        response = self.call('get', '/api/livestream/rooms/', 'not-a-token')
         self.assertEqual(response.status_code, 401)
