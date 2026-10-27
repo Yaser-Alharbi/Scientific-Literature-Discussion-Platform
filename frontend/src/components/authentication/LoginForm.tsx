@@ -44,11 +44,7 @@ export default function LoginForm() {
     try {
       await login(credentials.email, credentials.password);
       
-      if (!isAuthenticated) {
-        setLocalError('User not found in system. Please register or contact support.');
-      }
-      
-      // redirection will happen due to useEffect if isAuthenticated becomes true
+      // the store throws when login fails; on success the effect above redirects once isAuthenticated is true
     } catch (error: any) {
       setLocalError('Login failed. Please try again.');
     }
@@ -60,12 +56,6 @@ export default function LoginForm() {
     try {
       //auth store googleLogin function
       await googleLogin();
-
-      if (!isAuthenticated) {
-        setLocalError('User not found in system. Please register or contact support.');
-      }
-      
-      // redirection when isAuthenticated becomes true
     } catch (error: any) {
       console.error('Google login error:', error);
       setLocalError('Google login failed. Please try again.');
