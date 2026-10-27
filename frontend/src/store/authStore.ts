@@ -14,6 +14,7 @@ import {
 } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
 import { auth } from '@/lib/firebase';
+import { api } from '@/lib/api';
 import type { ProfileUpdate, User } from '@/types/user';
 
 // Firebase errors carry a code such as 'auth/invalid-credential'; everything else is shown by its message.
@@ -72,15 +73,6 @@ interface AuthActions {
 
 // Combined interface for state and actions
 interface AuthStore extends AuthState, AuthActions {}
-
-// API endpoint URLs
-const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-const AUTH_ENDPOINTS = {
-  USER_PROFILE: `${API_URL}/api/user-profile`,
-  REGISTER: `${API_URL}/api/register`,
-  SET_PASSWORD: `${API_URL}/api/set-password`,
-  UPDATE_PROFILE: `${API_URL}/api/update-profile`,
-};
 
 let unsubscribeAuthListener: (() => void) | undefined;
 
@@ -203,7 +195,7 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       // Register Google user action - registers a Google-authenticated user in the backend
-      registerGoogleUser: async (userData?: Partial<User>) => {
+      registerGoogleUser: async () => {
         try {
           set({ isLoading: true, error: null });
           
@@ -220,27 +212,8 @@ export const useAuthStore = create<AuthStore>()(
           set({ token, isLoading: false });
           
           
-          const response = await fetch(AUTH_ENDPOINTS.REGISTER, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              ...userData,
-              auth_methods: 'google',
-              is_google_user: true
-            })
-          });
-          
-          if (!response.ok) {
-            const data = await response.json();
-            // if registration fails clean up firebase auth
-            await signOut(auth);
-            set({ token: null });
-            throw new Error(data.error || 'Failed to register Google user');
-          }
-          
+          // a failure here is cleaned up by the catch below (Firebase sign-out, cleared state)
+          await api.register({ auth_methods: 'google' });
 
           const freshToken = await userCredential.user.getIdToken(true);
           set({ token: freshToken });
@@ -278,7 +251,7 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       // Register action - creates a new user in Firebase and the backend
-      register: async (email: string, password: string, userData?: Partial<User>) => {
+      register: async (email: string, password: string, names?: { first_name?: string; last_name?: string }) => {
         try {
           set({ isLoading: true, error: null });
           
@@ -291,23 +264,7 @@ export const useAuthStore = create<AuthStore>()(
           }
           
           // register user in backend
-          const response = await fetch(AUTH_ENDPOINTS.REGISTER, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              ...userData,
-              email,
-              password
-            })
-          });
-          
-          if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.error || 'Failed to register user');
-          }
+          await api.register({ auth_methods: 'email', password, ...names });
           
           set({ token, isLoading: false });
 
@@ -359,137 +316,42 @@ export const useAuthStore = create<AuthStore>()(
 
       // fetchProfile action - fetches the user profile from the backend
       fetchProfile: async () => {
-        let retries = 2;  // number of retries for fetching the profile, sometimes the token is not refreshed fast enough based on testing 2 is enough might make it 3 or 4 to be safe
-        
-        while (retries >= 0) {
-          try {
-            const { token } = get();
-            let currentToken = token;
-            
-            if (!currentToken || get().error?.includes('Token used too early')) {
-              currentToken = await getAuthToken(true); // force refresh token
-            }
-            
-            if (!currentToken) {
-              console.error('No authentication token available');
-              set({ 
-                error: 'No authentication token available',
-                isAuthenticated: false, 
-                token: null 
-              });
-              return;
-            }
-            
-            set({ isLoading: true, error: null });
-            
-            const response = await fetch(AUTH_ENDPOINTS.USER_PROFILE, {
-              headers: {
-                'Authorization': `Bearer ${currentToken}`
-              }
-            });
-            
-            if (!response.ok) {
-              const data = await response.json();
-              
-              // 401 or 403 = user isn't authenticated in the backend
-              if ((response.status === 401 || response.status === 403) && retries > 0) {
-                // wait before retrying
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                retries--;
-                continue; // retry
-              }
-              
-              if (response.status === 401 || response.status === 403) {
-                set({ 
-                  isAuthenticated: false, 
-                  isLoading: false,
-                  user: null,
-                  token: null, 
-                  error: 'You are authenticated with Firebase but not registered in our system. Please contact support.'
-                });
-                
-                // sign out from Firebas
-                try {
-                  signOut(auth);
-                } catch(e) {
-                  console.error("Error signing out of Firebase:", e);
-                }
-                
-                return;
-              }
-              
-              throw new Error(data.error || 'Failed to fetch user profile');
-            }
-            
-            const userData = await response.json();
-            
-            set({
-              user: userData,
-              isLoading: false,
-              token: currentToken,
-              isAuthenticated: true 
-            });
-            
-            break;
-            
-          } catch (error) {
+        // after a page load Firebase restores the session asynchronously
+        await auth.authStateReady();
+        const firebaseUser = auth.currentUser;
+        if (!firebaseUser) {
+          set({ error: 'No authentication token available', isAuthenticated: false, token: null });
+          return;
+        }
 
-            if (messageOf(error, '').includes('Token used too early') && retries > 0) {
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              retries--;
-              continue;
-            }
-            
-            set({ 
-              isLoading: false, 
-              error: messageOf(error, 'Failed to fetch profile'),
-              isAuthenticated: false,
-              user: null,
-              token: null 
-            });
-            
-            try {
-              signOut(auth);
-            } catch(e) {
-              console.error("Error signing out of Firebase:", e);
-            }
-            
-            return;
+        set({ isLoading: true, error: null });
+        try {
+          const user = await api.getProfile();
+          set({ user, token: await firebaseUser.getIdToken(), isLoading: false, isAuthenticated: true });
+        } catch (error) {
+          set({
+            isLoading: false,
+            error: messageOf(error, 'Failed to fetch profile'),
+            isAuthenticated: false,
+            user: null,
+            token: null
+          });
+
+          try {
+            await signOut(auth);
+          } catch (e) {
+            console.error("Error signing out of Firebase:", e);
           }
         }
       },
 
       // update profile action - updates the user profile in the backend
-      updateProfile: async (userData: Partial<User>) => {
-        const { token } = get();
-        
-        if (!token) {
-          set({ error: 'No authentication token available' });
-          return;
-        }
-        
+      updateProfile: async (changes: ProfileUpdate) => {
         try {
           set({ isLoading: true, error: null });
-          
-          
-          
-          const response = await fetch(AUTH_ENDPOINTS.UPDATE_PROFILE, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(userData)
-          });
-          
-          if (!response.ok) {
-            const errorData = await response.json();
-            console.error('Update profile response error:', errorData);
-            throw new Error(errorData.error || 'Failed to update profile');
-          }
-          
-          // re-fetch to get the updated profile data
-          await get().fetchProfile();
+          // the backend answers with the updated profile
+          const user = await api.updateProfile(changes);
+          set({ user, isLoading: false });
         } catch (error) {
           console.error('Error in updateProfile action:', error);
           set({ 
@@ -560,22 +422,7 @@ export const useAuthStore = create<AuthStore>()(
           const freshToken = await currentUser.getIdToken(true);
           
           // update password in backend
-          const response = await fetch(AUTH_ENDPOINTS.SET_PASSWORD, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${freshToken}`
-            },
-            body: JSON.stringify({ 
-              password: newPassword,
-              is_google_user: isGoogleUser 
-            })
-          });
-          
-          if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.error || 'Failed to update password');
-          }
+          await api.setPassword(newPassword);
           
           set({ token: freshToken, isLoading: false });
         } catch (error) {

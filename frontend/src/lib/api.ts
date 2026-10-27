@@ -6,7 +6,10 @@ import type { ProfileUpdate, RegisterPayload, User } from '@/types/user';
 // currentUser.getIdToken() hands out the cached token and refreshes it shortly before it expires.
 const client = createApiClient({
   baseUrl: config.apiBaseUrl,
-  getToken: async () => (auth.currentUser ? auth.currentUser.getIdToken() : null),
+  getToken: async () => {
+    await auth.authStateReady();
+    return auth.currentUser ? auth.currentUser.getIdToken() : null;
+  },
 });
 
 export const api = {
