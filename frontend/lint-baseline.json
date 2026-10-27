@@ -56,11 +56,6 @@
   "src/components/ui/Navbar.tsx": {
     "@typescript-eslint/no-unused-vars": 1
   },
-  "src/store/authStore.ts": {
-    "@typescript-eslint/ban-ts-comment": 3,
-    "@typescript-eslint/no-explicit-any": 15,
-    "@typescript-eslint/no-unused-vars": 1
-  },
   "src/store/livestreamStore.ts": {
     "@typescript-eslint/no-explicit-any": 2,
     "@typescript-eslint/no-unused-vars": 1

@@ -12,7 +12,18 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential
 } from 'firebase/auth';
+import { FirebaseError } from 'firebase/app';
 import { auth } from '@/lib/firebase';
+import type { ProfileUpdate, User } from '@/types/user';
+
+// Firebase errors carry a code such as 'auth/invalid-credential'; everything else is shown by its message.
+function errorCode(error: unknown): string | undefined {
+  return error instanceof FirebaseError ? error.code : undefined;
+}
+
+function messageOf(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
 
 async function getAuthToken(forceRefresh = false): Promise<string | null> {
   try {
@@ -20,9 +31,9 @@ async function getAuthToken(forceRefresh = false): Promise<string | null> {
     if (!currentUser) return null;
     
     return await currentUser.getIdToken(forceRefresh);
-  } catch (error: any) {
+  } catch (error) {
     // Handle token timing errors with retry
-    if (error.message?.includes('Token used too early')) {
+    if (messageOf(error, '').includes('Token used too early')) {
       // Wait 1.5 seconds to allow clocks to synchronize
       await new Promise(resolve => setTimeout(resolve, 1500));
       const user = auth.currentUser;
@@ -32,19 +43,6 @@ async function getAuthToken(forceRefresh = false): Promise<string | null> {
     
     throw error;
   }
-}
-
-// defines the structure of user data based on the backend authentication/models.py file
-interface User {
-  email: string;
-  institution?: string;
-  bio?: string;
-  research_interests?: string[];
-  provider?: string;
-  auth_methods?: string;
-  first_name?: string;
-  last_name?: string;
-  password_set?: boolean;
 }
 
 //structure of the authentication state so we can use it in the store
@@ -60,11 +58,11 @@ interface AuthState {
 interface AuthActions {
   login: (email: string, password: string) => Promise<void>;
   googleLogin: () => Promise<void>;
-  registerGoogleUser: (userData?: Partial<User>) => Promise<void>;
-  register: (email: string, password: string, userData?: Partial<User>) => Promise<void>;
+  registerGoogleUser: () => Promise<void>;
+  register: (email: string, password: string, names?: { first_name?: string; last_name?: string }) => Promise<void>;
   logout: () => void;
   fetchProfile: () => Promise<void>;
-  updateProfile: (userData: Partial<User>) => Promise<void>;
+  updateProfile: (changes: ProfileUpdate) => Promise<void>;
   setPassword: (password: string, currentPassword?: string) => Promise<void>;
   clearError: () => void;
   refreshToken: () => Promise<void>;
@@ -78,13 +76,13 @@ interface AuthStore extends AuthState, AuthActions {}
 // API endpoint URLs
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 const AUTH_ENDPOINTS = {
-  VERIFY_TOKEN: `${API_URL}/api/verify-token`,
   USER_PROFILE: `${API_URL}/api/user-profile`,
   REGISTER: `${API_URL}/api/register`,
   SET_PASSWORD: `${API_URL}/api/set-password`,
   UPDATE_PROFILE: `${API_URL}/api/update-profile`,
-  RESEARCH_INTERESTS: `${API_URL}/api/research-interests`,
 };
+
+let unsubscribeAuthListener: (() => void) | undefined;
 
 export const useAuthStore = create<AuthStore>()(
   persist(
@@ -129,21 +127,16 @@ export const useAuthStore = create<AuthStore>()(
             
             throw new Error(state.error || 'Failed to authenticate with backend');
           }
-        } catch (error: any) {
+        } catch (error) {
           // Check for specific Firebase auth errors and provide user-friendly messages
-          let errorMessage = 'Failed to login';
-          
-          if (error.code === 'auth/invalid-credential' || 
-              error.code === 'auth/wrong-password' || 
-              error.code === 'auth/user-not-found') {
-            errorMessage = 'Incorrect account information';
-          } else if (error.message) {
-            errorMessage = error.message;
-          }
+          const code = errorCode(error);
+          const message = code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found'
+            ? 'Incorrect account information'
+            : messageOf(error, 'Failed to login');
           
           set({ 
             isLoading: false, 
-            error: errorMessage,
+            error: message,
             isAuthenticated: false,
             token: null,
             user: null
@@ -189,22 +182,16 @@ export const useAuthStore = create<AuthStore>()(
             
             throw new Error(state.error || 'Failed to authenticate with backend');
           }
-        } catch (error: any) {
+        } catch (error) {
           // Check for specific Firebase auth errors and provide user-friendly messages
-          let errorMessage = 'Failed to login with Google';
-          
-          if (error.code === 'auth/invalid-credential' || 
-              error.code === 'auth/wrong-password' || 
-              error.code === 'auth/user-not-found' ||
-              error.code === 'auth/popup-closed-by-user') {
-            errorMessage = 'Incorrect account information';
-          } else if (error.message) {
-            errorMessage = error.message;
-          }
+          const code = errorCode(error);
+          const message = code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found' || code === 'auth/popup-closed-by-user'
+            ? 'Incorrect account information'
+            : messageOf(error, 'Failed to login with Google');
           
           set({ 
             isLoading: false, 
-            error: errorMessage,
+            error: message,
             isAuthenticated: false,
             token: null,
             user: null
@@ -265,13 +252,13 @@ export const useAuthStore = create<AuthStore>()(
             if (!state.isAuthenticated || !state.user) {
               throw new Error('Failed to complete Google registration');
             }
-          } catch (profileError: any) {
+          } catch (profileError) {
             console.warn("User registered but couldn't fetch profile:", profileError);
             set({ isAuthenticated: true });
           }
             
           set({ isLoading: false });
-        } catch (error: any) {
+        } catch (error) {
 
           try {
             await signOut(auth);
@@ -281,7 +268,7 @@ export const useAuthStore = create<AuthStore>()(
           
           set({ 
             isLoading: false, 
-            error: error.message || 'Failed to register Google user',
+            error: messageOf(error, 'Failed to register Google user'),
             token: null,
             user: null,
             isAuthenticated: false
@@ -335,7 +322,7 @@ export const useAuthStore = create<AuthStore>()(
             throw new Error('Failed to complete registration');
           }
           
-        } catch (error: any) {
+        } catch (error) {
           try {
             signOut(auth);
           } catch (e) {
@@ -344,7 +331,7 @@ export const useAuthStore = create<AuthStore>()(
 
           set({ 
             isLoading: false, 
-            error: error.message || 'Failed to register',
+            error: messageOf(error, 'Failed to register'),
             isAuthenticated: false,
             token: null,
             user: null
@@ -365,8 +352,8 @@ export const useAuthStore = create<AuthStore>()(
             token: null, 
             isAuthenticated: false 
           });
-        } catch (error: any) {
-          set({ error: error.message || 'Failed to logout' });
+        } catch (error) {
+          set({ error: messageOf(error, 'Failed to logout') });
         }
       },
 
@@ -436,11 +423,6 @@ export const useAuthStore = create<AuthStore>()(
             
             const userData = await response.json();
             
-            const providerData = auth.currentUser?.providerData || [];
-            const provider = providerData.find(p => p.providerId === 'google.com') 
-              ? 'google.com'
-              : 'password';
-            
             set({
               user: userData,
               isLoading: false,
@@ -450,9 +432,9 @@ export const useAuthStore = create<AuthStore>()(
             
             break;
             
-          } catch (error: any) {
+          } catch (error) {
 
-            if (error.message?.includes('Token used too early') && retries > 0) {
+            if (messageOf(error, '').includes('Token used too early') && retries > 0) {
               await new Promise(resolve => setTimeout(resolve, 1000));
               retries--;
               continue;
@@ -460,7 +442,7 @@ export const useAuthStore = create<AuthStore>()(
             
             set({ 
               isLoading: false, 
-              error: error.message || 'Failed to fetch profile',
+              error: messageOf(error, 'Failed to fetch profile'),
               isAuthenticated: false,
               user: null,
               token: null 
@@ -508,11 +490,11 @@ export const useAuthStore = create<AuthStore>()(
           
           // re-fetch to get the updated profile data
           await get().fetchProfile();
-        } catch (error: any) {
+        } catch (error) {
           console.error('Error in updateProfile action:', error);
           set({ 
             isLoading: false, 
-            error: error.message || 'Failed to update profile'
+            error: messageOf(error, 'Failed to update profile')
           });
           throw error; // re-throw to so component can catch it
         }
@@ -549,7 +531,7 @@ export const useAuthStore = create<AuthStore>()(
                 currentPassword
               );
               await reauthenticateWithCredential(currentUser, credential);
-            } catch (error: any) {
+            } catch (error) {
               console.error('Reauthentication error:', error);
               throw new Error('Current password is incorrect');
             }
@@ -558,7 +540,7 @@ export const useAuthStore = create<AuthStore>()(
             const provider = new GoogleAuthProvider();
             try {
               await signInWithPopup(auth, provider);
-            } catch (error: any) {
+            } catch (error) {
               console.error('Google reauthentication error:', error);
               throw new Error('Please reauthenticate with Google to change your password');
             }
@@ -567,8 +549,8 @@ export const useAuthStore = create<AuthStore>()(
           // update firebase password
           try {
             await updatePassword(currentUser, newPassword);
-          } catch (error: any) {
-            if (error.code === 'auth/requires-recent-login') {
+          } catch (error) {
+            if (errorCode(error) === 'auth/requires-recent-login') {
               throw new Error('For security reasons, please log out and log back in, then try changing your password again');
             }
             throw error;
@@ -596,10 +578,10 @@ export const useAuthStore = create<AuthStore>()(
           }
           
           set({ token: freshToken, isLoading: false });
-        } catch (error: any) {
+        } catch (error) {
           set({ 
             isLoading: false, 
-            error: error.message || 'Failed to set password'
+            error: messageOf(error, 'Failed to set password')
           });
           throw error;
         }
@@ -620,10 +602,10 @@ export const useAuthStore = create<AuthStore>()(
         
         // fetch profile after token refresh
         await get().fetchProfile();
-      } catch (error: any) {
+      } catch (error) {
         set({ 
           isLoading: false, 
-          error: error.message || 'Failed to refresh token'
+          error: messageOf(error, 'Failed to refresh token')
         });
       }
       },
@@ -653,20 +635,13 @@ export const useAuthStore = create<AuthStore>()(
                 get().fetchProfile();
               }
             }
-          } catch (error: any) {
+          } catch (error) {
             console.error('Auth sync error:', error);
           }
         });
-        // without this, the auth state listener will not be removed when the component unmounts
-        // store the unsubscribe function in window to prevent memory leaks
-        // @ts-ignore
-        if (typeof window !== 'undefined') {
-          // cleanup previous listener if exists
-          // @ts-ignore
-          if (window._authUnsubscribe) window._authUnsubscribe();
-          // @ts-ignore
-          window._authUnsubscribe = unsubscribe;
-        }
+        // replace the previous listener so repeated calls do not stack subscriptions
+        unsubscribeAuthListener?.();
+        unsubscribeAuthListener = unsubscribe;
       },
 
       // fetch research interests action - fetches the research interests from the backend

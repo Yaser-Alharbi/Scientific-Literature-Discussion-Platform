@@ -84,7 +84,7 @@ export default function SignupForm({ provider, email }: SignupFormProps) {
       setIsSuccess(true);
       
       // register user
-      await register(formData.email, formData.password, {auth_methods: 'email', first_name: formData.firstName, last_name: formData.lastName});
+      await register(formData.email, formData.password, { first_name: formData.firstName, last_name: formData.lastName });
 
       // Get the auth state to verify full authentication
       const { isAuthenticated, user } = useAuthStore.getState();
