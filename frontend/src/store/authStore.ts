@@ -27,23 +27,8 @@ function messageOf(error: unknown, fallback: string): string {
 }
 
 async function getAuthToken(forceRefresh = false): Promise<string | null> {
-  try {
-    const currentUser = auth.currentUser;
-    if (!currentUser) return null;
-    
-    return await currentUser.getIdToken(forceRefresh);
-  } catch (error) {
-    // Handle token timing errors with retry
-    if (messageOf(error, '').includes('Token used too early')) {
-      // Wait 1.5 seconds to allow clocks to synchronize
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      const user = auth.currentUser;
-      if (!user) return null;
-      return user.getIdToken(true);
-    }
-    
-    throw error;
-  }
+  const currentUser = auth.currentUser;
+  return currentUser ? currentUser.getIdToken(forceRefresh) : null;
 }
 
 //structure of the authentication state so we can use it in the store
@@ -523,12 +508,4 @@ if (typeof window !== 'undefined') {
   setTimeout(() => {
     useAuthStore.getState().syncAuthState();
   }, 100);
-  
-
-  setInterval(() => {
-    const { error, refreshToken } = useAuthStore.getState();
-    if (error && error.includes('Token used too early')) {
-      refreshToken();
-    }
-  }, 2000);
 }
