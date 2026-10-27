@@ -17,10 +17,10 @@ import sys
 # Generate unique test user email
 RANDOM_NUMBERS = f"{random.randint(10, 99)}"
 
-# Base URL for frontend testing
-BASE_URL = "http://localhost:4000"
+# Base URL for frontend testing: `npm run dev` serves on 3000
+BASE_URL = os.environ.get('FRONTEND_URL', 'http://localhost:3000').rstrip('/')
 
-@unittest.skipUnless(os.environ.get('RUN_SELENIUM') == '1', 'needs frontend on localhost:4000 and Chrome')
+@unittest.skipUnless(os.environ.get('RUN_SELENIUM') == '1', 'needs RUN_SELENIUM=1, frontend on FRONTEND_URL (default localhost:3000), backend on 8000 and Chrome')
 class FrontendAuthenticationTests(unittest.TestCase):
     """Tests using Selenium"""
     
@@ -31,9 +31,10 @@ class FrontendAuthenticationTests(unittest.TestCase):
     def setUpClass(cls):
         """Set up the WebDriver once for all tests"""
         options = webdriver.ChromeOptions()
-        options.add_argument("--start-maximized")
-        
-        options.headless = False # Set true to not see browser
+        # Headless by default; set SELENIUM_HEADED=1 to watch the browser.
+        if os.environ.get('SELENIUM_HEADED') != '1':
+            options.add_argument("--headless=new")
+        options.add_argument("--window-size=1920,1080")
         cls.driver = webdriver.Chrome(options=options)
         cls.driver.implicitly_wait(10)
         print("🚀 Starting authentication tests...")

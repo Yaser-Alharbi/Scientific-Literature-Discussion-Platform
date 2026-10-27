@@ -38,10 +38,17 @@ For each test you wrote, mentally (or actually) apply realistic bugs to the prod
 
 ## Running the checks
 Backend (Python 3.12; 3.11 also works; 3.13 does not, see the parking lot), from `backend/`, in a venv with `pip install -r requirements.txt`:
-- `python manage.py test` runs the browserless suite on SQLite. It needs no `.env` and no `SECRET_KEY`; the runner supplies a test-only key. The Selenium class in `authentication/tests.py` is skipped unless `RUN_SELENIUM=1` (it also needs the frontend on `localhost:4000` and Chrome).
+- `python manage.py test` runs the browserless suite on SQLite. It needs no `.env` and no `SECRET_KEY`; the runner supplies a test-only key. The Selenium class in `authentication/tests.py` is skipped unless `RUN_SELENIUM=1` (see "Running the Selenium suite" below).
 - `python manage.py test --shuffle 1` (any seed) must also pass: tests may not depend on each other or on a warm cache.
 - `python manage.py makemigrations --check --dry-run` must report no changes.
 - `python scripts/mutation_check.py` must report every patch killed. It runs the patches of every phase, not just the current one.
+
+### Running the Selenium suite
+End-to-end through the real frontend, backend and Firebase, so run it against your local setup, not in CI. It is ordered and stateful: test 01 signs up a new user and the later tests reuse it, so run the whole class, not single tests. It creates real Firebase users (`testuserNNNN@example.com`).
+1. Backend: `cd backend && python manage.py runserver 8000` (with `backend/.env` set).
+2. Frontend: `cd frontend && npm run dev` (port 3000; needs `frontend/.env.local` with the `NEXT_PUBLIC_*` keys).
+3. Chrome installed; Selenium 4 fetches a matching driver itself.
+4. `cd backend && RUN_SELENIUM=1 python manage.py test authentication.tests` runs headless. Add `SELENIUM_HEADED=1` to watch the browser, `FRONTEND_URL=http://host:port` if the frontend is elsewhere.
 
 Frontend, from `frontend/` after `npm ci`:
 - `npm run lint` is a ratchet: it fails on any finding beyond `lint-baseline.json` (keyed by file and rule) and ignores `eslint-disable` comments. `npm run lint:full` prints the raw report. After fixing findings, `node scripts/lint-baseline.mjs --update` lowers the baseline; it refuses to raise it.
