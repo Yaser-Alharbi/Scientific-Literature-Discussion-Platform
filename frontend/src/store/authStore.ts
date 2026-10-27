@@ -494,11 +494,7 @@ export const useAuthStore = create<AuthStore>()(
       // fetch research interests action - fetches the research interests from the backend
       fetchResearchInterests: async () => {
         try {
-          const response = await fetch('/api/research-interests');
-          if (response.ok) {
-            return await response.json();
-          }
-          return [];
+          return await api.getResearchInterests();
         } catch (error) {
           console.error('Error fetching research interests:', error);
           return [];

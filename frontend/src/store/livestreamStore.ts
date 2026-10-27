@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useAuthStore } from './authStore';
+import { api } from '@/lib/api';
 import { auth } from '@/lib/firebase';
 
 interface Room {
@@ -475,13 +476,7 @@ export const useLivestreamStore = create<LivestreamState>()(
           
           setLoadingInterests(true);
           
-          const response = await fetch(`${API_BASE}/research-interests`);
-          
-          if (!response.ok) {
-            throw new Error(`Failed to fetch research interests: ${response.status} ${response.statusText}`);
-          }
-          
-          const data = await response.json();
+          const data = await api.getResearchInterests();
           
           setAvailableInterests(data);
           setLoadingInterests(false);
