@@ -26,6 +26,14 @@ function messageOf(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
+async function discardNewAccount(user: UserCredential['user']) {
+  try {
+    await user.delete();
+  } catch (error) {
+    console.error('Could not delete the new Firebase account:', error);
+  }
+}
+
 async function getAuthToken(forceRefresh = false): Promise<string | null> {
   const currentUser = auth.currentUser;
   return currentUser ? currentUser.getIdToken(forceRefresh) : null;
@@ -249,7 +257,14 @@ export const useAuthStore = create<AuthStore>()(
           }
           
           // register user in backend
-          await api.register({ auth_methods: 'email', password, ...names });
+          try {
+            await api.register({ auth_methods: 'email', password, ...names });
+          } catch (registerError) {
+            // Without a backend user the new Firebase account is a dead end: login says "not registered" and
+            // signup says "email already in use". Remove it so the person can simply try again.
+            await discardNewAccount(userCredential.user);
+            throw registerError;
+          }
           
           set({ token, isLoading: false });
 
