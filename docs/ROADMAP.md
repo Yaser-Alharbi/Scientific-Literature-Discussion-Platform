@@ -11,7 +11,7 @@ Direction: **fix and rebuild the core first; deploy last.** Same stack (Django, 
 | 1 | Repo hygiene | `hygiene` | `phase-1-hygiene` | [x] done, credentials verified by user (see `docs/audit.md`) |
 | 2 | Move/organize only | `organizer` | `phase-2-organizer` | [x] done and approved by user |
 | 3 | Tooling (lint, typecheck, test setup) | `tooling` | `phase-3-tooling` | [x] done, report in `docs/reports/phase-3.md` |
-| 4 | Core: foundations (shared infrastructure, auth, profile) | `core-foundations` | `phase-4-foundations` | [ ] |
+| 4 | Core: foundations (shared infrastructure, auth, profile) | `core-foundations` | `phase-4-foundations` | [~] ready for your review and click-through, report in `docs/reports/phase-4.md` (tick `[x]` in the PR) |
 | 5 | Core: paper search | `core-papers` | `phase-5-papers` | [ ] |
 | 6 | Core: extracts | `core-extracts` | `phase-6-extracts` | [ ] |
 | 7 | Core: rooms (live discussion) | `core-rooms` | `phase-7-rooms` | [ ] |
@@ -109,3 +109,7 @@ Out-of-scope findings go here with the phase they belong to.
 - **Phase 4:** production code still uses `print` where the test run shows it (`papers/services.py`, `authentication/authentication.py`); already listed under phase 4's logging item.
 - **Phase 11:** `npm run build` needs the `NEXT_PUBLIC_*` variables set, otherwise Firebase fails prerendering `/Login`; mention it in the setup docs.
 - **Phase 7 (first):** Restore strict 401 for bad/expired tokens on public livestream views once all frontend calls use the shared API client with a fresh token; flip the lenient test back (`test_invalid_token_on_a_public_view_is_treated_as_anonymous` and `test_unregistered_uid_on_a_public_view_is_treated_as_anonymous` in `backend/authentication/test_firebase_auth.py`) and remove the `AllowAny` leniency in `FirebaseAuthentication._allows_anonymous`.
+- **Phase 5/6/7:** convert the remaining raw `fetch` calls to the typed client in `frontend/src/lib/api.ts` (`paperStore`, `livestreamStore`, `extracts/page.tsx`, `app/api/token/route.ts`; the room page's LiveKit URL to `lib/appConfig.ts`). Once none read `useAuthStore().token`, remove the persisted `token` and `refreshToken` from `authStore` (the persisted copy goes stale after an hour).
+- **Phase 8 (UI):** `authStore.syncAuthState` sets `isAuthenticated: true` before the profile has loaded, so a signed-in UI can show for a user the backend would reject. Left alone in phase 4 because `PageLoadDelay` redirects on `isAuthenticated` and it needs a click-through to change safely.
+- **Phase 10 / `CLAUDE.md`:** `npm run test` (Node's built-in runner) now exists; add it to the Definition of done (the user applies the edit).
+- **Phase 12:** `settings.py` still defines `AUTH_PASSWORD_VALIDATORS` twice (the second, disabled "for testing", wins), `STATIC_URL` twice, and `DEBUG=True`; the `next.config.js` `/api` rewrite is no longer used by the auth code.
