@@ -39,7 +39,6 @@ export default function ProfilePage() {
         last_name: user.last_name || ''
       });
     }
-    loadResearchInterests();
   }, [user]);
 
   // Load research interests from the backend
@@ -96,8 +95,6 @@ export default function ProfilePage() {
     try {
       
       await updateProfile(editableUser);
-      
-      await fetchProfile();
       
       setNotification({ message: 'Profile updated successfully!', isError: false, show: true });
       setEditMode(false);

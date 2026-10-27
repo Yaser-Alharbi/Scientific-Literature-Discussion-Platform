@@ -1,10 +1,8 @@
 {
   "src/app/(authentication)/ForgotPassword/page.tsx": {
-    "@typescript-eslint/no-explicit-any": 1,
     "react/no-unescaped-entities": 1
   },
   "src/app/(authentication)/ResetPassword/page.tsx": {
-    "@typescript-eslint/no-explicit-any": 3,
     "react/no-unescaped-entities": 1
   },
   "src/app/(livestream)/room/[roomId]/page.tsx": {
@@ -24,7 +22,7 @@
   },
   "src/app/(user-data)/profile/page.tsx": {
     "@typescript-eslint/no-unused-vars": 1,
-    "react-hooks/exhaustive-deps": 2
+    "react-hooks/exhaustive-deps": 1
   },
   "src/app/api/token/route.ts": {
     "@typescript-eslint/no-explicit-any": 1,
@@ -41,8 +39,6 @@
   },
   "src/components/authentication/LoginForm.tsx": {
     "@next/next/no-img-element": 1,
-    "@typescript-eslint/no-explicit-any": 2,
-    "@typescript-eslint/no-unused-vars": 1,
     "react/no-unescaped-entities": 1
   },
   "src/components/authentication/SignupForm.tsx": {
@@ -50,7 +46,6 @@
     "@typescript-eslint/no-unused-vars": 2
   },
   "src/components/profile/PasswordSettings.tsx": {
-    "@typescript-eslint/no-explicit-any": 1,
     "@typescript-eslint/no-unused-vars": 1
   },
   "src/components/ui/Navbar.tsx": {
