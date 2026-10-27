@@ -2,10 +2,9 @@
 import { useState, useEffect } from 'react';
 import { confirmPasswordReset, verifyPasswordResetCode, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { api } from '@/lib/api';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-
-const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
@@ -36,7 +35,7 @@ export default function ResetPassword() {
           const emailFromCode = await verifyPasswordResetCode(auth, code);
           setEmail(emailFromCode);
           setVerifying(false);
-        } catch (err: any) {
+        } catch (err) {
           console.error('Error verifying reset code:', err);
           setError('Invalid or expired reset code. Please request a new reset link.');
           setVerifying(false);
@@ -67,32 +66,12 @@ export default function ResetPassword() {
   
   const syncPasswordWithBackend = async (newPassword: string, userEmail: string) => {
     try {
-      // log in to get a fresh token
-      const userCredential = await signInWithEmailAndPassword(auth, userEmail, newPassword);
-      const token = await userCredential.user.getIdToken();
-      
-      // call backend to sync the password
-      const response = await fetch(`${API_URL}/api/sync-reset-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          email: userEmail,
-          password: newPassword
-        })
-      });
-      
-      const responseData = await response.json();
-      
-      if (!response.ok) {
-        console.error('Backend sync failed:', responseData);
-        throw new Error('Failed to sync password with server');
-      }
-      
+      // signing in with the new password makes the user the current Firebase user, so the API client
+      // sends their token and the backend changes their own password
+      await signInWithEmailAndPassword(auth, userEmail, newPassword);
+      await api.syncResetPassword(newPassword);
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Password sync error:', error);
       return false;
     }
@@ -132,9 +111,9 @@ export default function ResetPassword() {
         console.error('Backend sync failed after successful Firebase reset');
         setError('Password reset in Firebase succeeded but failed to sync with our system. Please contact support.');
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Password reset error:', err);
-      setError(err.message || 'Failed to reset password. The link may have expired.');
+      setError(err instanceof Error && err.message ? err.message : 'Failed to reset password. The link may have expired.');
     } finally {
       setIsLoading(false);
     }
