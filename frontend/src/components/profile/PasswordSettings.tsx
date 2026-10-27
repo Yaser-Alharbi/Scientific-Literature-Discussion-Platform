@@ -100,10 +100,10 @@ export default function PasswordSettings() {
       
       // refresh the profile data after successful password change
       await refreshUserData();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Password update error:', error);
       
-      setLocalError(error.message || 'Failed to update password');
+      setLocalError(error instanceof Error && error.message ? error.message : 'Failed to update password');
     }
   };
 

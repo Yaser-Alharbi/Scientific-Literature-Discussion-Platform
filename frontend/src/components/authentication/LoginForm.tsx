@@ -45,7 +45,7 @@ export default function LoginForm() {
       await login(credentials.email, credentials.password);
       
       // the store throws when login fails; on success the effect above redirects once isAuthenticated is true
-    } catch (error: any) {
+    } catch {
       setLocalError('Login failed. Please try again.');
     }
   };
@@ -56,7 +56,7 @@ export default function LoginForm() {
     try {
       //auth store googleLogin function
       await googleLogin();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Google login error:', error);
       setLocalError('Google login failed. Please try again.');
     }
